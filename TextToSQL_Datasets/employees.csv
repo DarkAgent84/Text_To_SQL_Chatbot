@@ -1,0 +1,51 @@
+employee_id,employee_name,role,department,hire_date,salary,manager_id
+1,Barry Bernard,Sales Manager,Sales,2019-01-30,32756.54,
+2,Andre Wright,Sales Manager,Sales,2019-08-30,43339.1,
+3,Lisa Allen,Sales Manager,Sales,2019-05-09,85595.57,
+4,Brian Gould,Support Manager,Support,2019-10-18,62448.46,
+5,David Wood,Support Manager,Support,2022-02-14,72821.51,
+6,Tracey Higgins,Sales Manager,Sales,2025-01-17,36864.89,
+7,Carla Collins,Finance Analyst,Finance,2021-09-22,82102.3,4
+8,Tanya Johnston,Sales Manager,Sales,2020-01-22,34494.36,
+9,Jaime David,Marketing Executive,Marketing,2022-12-22,55543.85,4
+10,Kevin Rivas,Sales Representative,Sales,2020-02-08,54975.63,1
+11,Michael Turner,Logistics Coordinator,Logistics,2020-03-23,40836.53,2
+12,Renee Hogan,Finance Analyst,Finance,2020-07-28,40293.7,4
+13,Amanda Patel,Finance Analyst,Finance,2021-10-20,89858.8,8
+14,Andrea Holland,Finance Analyst,Finance,2025-03-04,31389.42,1
+15,Jason Henry,Sales Representative,Sales,2020-01-18,84862.61,8
+16,Jack Snow,Warehouse Staff,Warehouse,2023-07-23,60251.01,4
+17,Christian Thompson,Marketing Executive,Marketing,2019-08-29,53391.2,2
+18,Marie Gilbert,Marketing Executive,Marketing,2021-12-22,80603.67,8
+19,Patricia Marshall,Support Manager,Support,2023-09-29,74671.63,
+20,Leslie Morris,Finance Analyst,Finance,2020-09-26,47879.42,4
+21,Timothy Ramirez,Sales Representative,Sales,2025-06-30,78114.36,1
+22,Paul Hudson,Sales Representative,Sales,2019-07-25,61690.98,19
+23,Gabrielle Snyder,Warehouse Staff,Warehouse,2019-08-21,85039.95,2
+24,John Kelly,Customer Support Agent,Support,2025-09-03,73239.24,2
+25,Douglas Carlson,Sales Manager,Sales,2023-07-12,36032.4,
+26,Kristi Black,Sales Manager,Sales,2025-06-29,67832.78,
+27,David Russell,Customer Support Agent,Support,2023-09-14,65870.2,26
+28,Cynthia Alvarez,Logistics Coordinator,Logistics,2021-12-04,72871.64,4
+29,Joan Smith,Logistics Coordinator,Logistics,2021-09-04,54517.65,5
+30,Jared Sanchez,Support Manager,Support,2024-02-16,49183.87,
+31,Jackie Tran,Customer Support Agent,Support,2019-02-08,69617.67,19
+32,Zachary Pierce,Customer Support Agent,Support,2019-10-28,42281.34,25
+33,Jesse Parker,Support Manager,Support,2020-06-26,90528.38,
+34,Nathan Stewart,Customer Support Agent,Support,2021-09-27,47094.16,6
+35,Tiffany Vaughn,Finance Analyst,Finance,2025-02-03,48268.65,33
+36,Parker Hill,Sales Representative,Sales,2025-03-21,90427.65,5
+37,Paige Carlson,Customer Support Agent,Support,2020-07-04,35733.72,5
+38,Dr. Elizabeth Ward,Customer Support Agent,Support,2025-03-16,46247.33,3
+39,Michael Martinez,Sales Manager,Sales,2022-11-05,41641.02,
+40,Anthony Carter,Support Manager,Support,2024-09-01,60731.63,
+41,Margaret Mullins,Sales Representative,Sales,2020-01-14,56379.58,30
+42,Adam Mitchell,Support Manager,Support,2019-06-30,28237.56,
+43,Glen Sheppard,Warehouse Staff,Warehouse,2021-12-08,77662.47,3
+44,Scott Wilson,Marketing Executive,Marketing,2025-04-16,35495.55,1
+45,John Ray,Warehouse Staff,Warehouse,2025-02-12,83917.87,1
+46,Brittany Shepherd,Warehouse Staff,Warehouse,2023-10-27,30802.53,3
+47,Angela Wright,Logistics Coordinator,Logistics,2019-06-13,51973.22,42
+48,Jennifer Carlson,Sales Manager,Sales,2020-02-26,51696.47,
+49,Patricia James,Marketing Executive,Marketing,2025-12-17,90026.18,5
+50,Elizabeth Chapman,Sales Manager,Sales,2020-10-27,93405.8,

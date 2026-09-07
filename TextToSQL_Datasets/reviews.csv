@@ -1,0 +1,151 @@
+review_id,product_id,customer_id,rating,review_date,review_comment
+1,165,16,1,2025-06-10,Would not recommend this.
+2,27,57,5,2024-12-24,Fast delivery and good packaging.
+3,132,25,4,2024-05-24,"Works perfectly, highly recommend."
+4,152,32,2,2025-08-10,Product stopped working after a week.
+5,92,66,5,2024-11-14,"Excellent product, exceeded my expectations!"
+6,125,76,4,2025-07-07,"Works perfectly, highly recommend."
+7,200,52,4,2024-01-30,Great value for money.
+8,175,39,4,2024-04-18,"Excellent product, exceeded my expectations!"
+9,22,36,4,2025-03-12,"Excellent product, exceeded my expectations!"
+10,170,71,4,2026-07-01,Fast delivery and good packaging.
+11,23,58,4,2025-09-23,Very satisfied with the quality.
+12,156,12,4,2026-04-17,"Works perfectly, highly recommend."
+13,175,13,5,2024-03-21,Fast delivery and good packaging.
+14,124,23,1,2025-08-04,Product stopped working after a week.
+15,51,82,5,2024-04-09,Very satisfied with the quality.
+16,185,73,4,2025-04-26,Very satisfied with the quality.
+17,184,73,5,2024-05-27,Great value for money.
+18,144,7,2,2024-09-21,Would not recommend this.
+19,30,91,2,2024-07-06,Product stopped working after a week.
+20,99,99,3,2024-12-04,Decent product for the price.
+21,76,84,3,2025-04-09,"Average quality, expected better."
+22,13,25,4,2025-05-01,"Excellent product, exceeded my expectations!"
+23,141,5,5,2025-04-17,Very satisfied with the quality.
+24,43,22,3,2026-02-25,"Average quality, expected better."
+25,154,62,5,2024-05-10,Fast delivery and good packaging.
+26,108,42,4,2026-04-17,Very satisfied with the quality.
+27,148,17,3,2024-11-29,"It's okay, does the job."
+28,12,57,4,2026-03-22,"Excellent product, exceeded my expectations!"
+29,110,48,5,2025-02-14,Very satisfied with the quality.
+30,195,91,4,2025-09-27,Great value for money.
+31,8,65,5,2025-05-08,Great value for money.
+32,104,2,4,2024-08-01,"Works perfectly, highly recommend."
+33,11,39,3,2025-03-17,Decent product for the price.
+34,155,64,3,2025-08-03,"Average quality, expected better."
+35,2,67,3,2025-12-11,Decent product for the price.
+36,34,27,5,2026-01-27,"Excellent product, exceeded my expectations!"
+37,151,54,2,2026-05-06,Would not recommend this.
+38,38,59,4,2025-09-02,Fast delivery and good packaging.
+39,54,87,4,2024-04-09,Fast delivery and good packaging.
+40,170,62,3,2024-11-11,"It's okay, does the job."
+41,191,87,1,2025-09-04,"Not satisfied, quality could be better."
+42,166,58,5,2026-02-28,Fast delivery and good packaging.
+43,199,69,3,2025-05-21,"Average quality, expected better."
+44,79,41,4,2024-04-02,"Excellent product, exceeded my expectations!"
+45,170,4,5,2026-06-27,Great value for money.
+46,186,77,4,2026-02-14,"Excellent product, exceeded my expectations!"
+47,57,89,5,2025-04-08,Great value for money.
+48,47,14,4,2025-09-22,Very satisfied with the quality.
+49,23,87,4,2024-07-29,Great value for money.
+50,34,37,3,2024-11-02,"Average quality, expected better."
+51,199,16,4,2026-07-29,"Works perfectly, highly recommend."
+52,21,13,2,2026-01-05,Product stopped working after a week.
+53,166,87,1,2024-04-01,Product stopped working after a week.
+54,85,31,4,2025-06-06,Fast delivery and good packaging.
+55,108,79,4,2026-05-22,Great value for money.
+56,41,42,5,2026-07-11,"Works perfectly, highly recommend."
+57,26,18,4,2024-01-01,"Excellent product, exceeded my expectations!"
+58,102,77,3,2024-04-22,"Average quality, expected better."
+59,17,59,2,2024-08-28,"Not satisfied, quality could be better."
+60,36,73,4,2025-02-07,Fast delivery and good packaging.
+61,78,56,4,2025-02-19,Very satisfied with the quality.
+62,157,29,4,2024-08-04,Fast delivery and good packaging.
+63,84,59,3,2024-05-22,"Average quality, expected better."
+64,31,64,5,2026-05-13,Very satisfied with the quality.
+65,42,18,2,2024-06-06,Product stopped working after a week.
+66,163,47,5,2024-05-17,Great value for money.
+67,32,41,5,2024-05-27,"Excellent product, exceeded my expectations!"
+68,170,16,3,2025-11-04,"Average quality, expected better."
+69,53,28,4,2024-03-27,Great value for money.
+70,110,50,5,2026-05-30,Very satisfied with the quality.
+71,176,49,4,2026-08-10,Fast delivery and good packaging.
+72,24,68,4,2025-04-10,Great value for money.
+73,108,57,4,2026-04-19,Fast delivery and good packaging.
+74,134,62,4,2024-08-19,"Works perfectly, highly recommend."
+75,86,53,5,2024-01-08,Fast delivery and good packaging.
+76,40,9,4,2025-12-30,Great value for money.
+77,68,68,4,2026-08-06,Very satisfied with the quality.
+78,39,67,4,2024-02-04,"Works perfectly, highly recommend."
+79,72,87,1,2025-05-09,Would not recommend this.
+80,144,84,3,2025-08-17,"It's okay, does the job."
+81,177,42,4,2024-05-25,"Excellent product, exceeded my expectations!"
+82,141,36,3,2026-05-29,Decent product for the price.
+83,81,50,1,2025-04-21,Product stopped working after a week.
+84,24,52,4,2026-06-30,Fast delivery and good packaging.
+85,140,54,4,2025-04-28,Great value for money.
+86,81,76,4,2025-12-01,"Excellent product, exceeded my expectations!"
+87,68,59,4,2024-11-15,Fast delivery and good packaging.
+88,116,84,4,2025-07-01,"Works perfectly, highly recommend."
+89,126,68,3,2025-04-09,"Average quality, expected better."
+90,169,2,4,2025-08-10,Very satisfied with the quality.
+91,112,13,3,2024-12-27,"Average quality, expected better."
+92,115,22,1,2024-10-23,Product stopped working after a week.
+93,191,73,5,2026-02-06,Fast delivery and good packaging.
+94,35,61,5,2024-09-23,Fast delivery and good packaging.
+95,85,23,5,2025-08-15,Very satisfied with the quality.
+96,147,95,5,2025-11-03,"Excellent product, exceeded my expectations!"
+97,32,47,1,2025-10-01,Would not recommend this.
+98,152,87,5,2024-03-25,Very satisfied with the quality.
+99,199,76,5,2026-05-21,"Excellent product, exceeded my expectations!"
+100,4,36,3,2024-05-15,"Average quality, expected better."
+101,125,71,4,2026-05-28,"Works perfectly, highly recommend."
+102,114,94,5,2025-09-10,"Excellent product, exceeded my expectations!"
+103,28,19,5,2026-01-26,Fast delivery and good packaging.
+104,77,18,5,2025-01-13,Very satisfied with the quality.
+105,162,53,3,2026-03-12,"Average quality, expected better."
+106,18,71,3,2024-07-04,"Average quality, expected better."
+107,174,61,3,2024-12-17,"It's okay, does the job."
+108,182,91,1,2025-09-01,"Not satisfied, quality could be better."
+109,198,87,2,2026-05-07,"Not satisfied, quality could be better."
+110,111,76,4,2026-02-27,Very satisfied with the quality.
+111,176,43,4,2026-01-13,Very satisfied with the quality.
+112,44,48,4,2025-08-14,Great value for money.
+113,99,84,3,2024-02-25,"Average quality, expected better."
+114,81,41,4,2024-02-23,"Excellent product, exceeded my expectations!"
+115,182,84,5,2025-05-02,Very satisfied with the quality.
+116,126,35,5,2024-08-27,Fast delivery and good packaging.
+117,36,91,4,2025-04-30,Very satisfied with the quality.
+118,100,84,5,2026-06-10,Fast delivery and good packaging.
+119,82,28,4,2026-08-07,"Works perfectly, highly recommend."
+120,79,76,3,2025-11-25,"Average quality, expected better."
+121,116,2,5,2025-11-30,Fast delivery and good packaging.
+122,8,32,1,2026-07-28,"Not satisfied, quality could be better."
+123,181,65,4,2026-05-14,"Works perfectly, highly recommend."
+124,200,97,4,2024-12-09,"Works perfectly, highly recommend."
+125,92,31,5,2024-09-18,"Excellent product, exceeded my expectations!"
+126,104,79,3,2025-04-17,"Average quality, expected better."
+127,115,67,3,2024-09-04,Decent product for the price.
+128,195,71,3,2026-02-27,Decent product for the price.
+129,172,86,5,2025-11-24,"Works perfectly, highly recommend."
+130,73,71,3,2024-11-16,"It's okay, does the job."
+131,170,68,4,2026-05-01,"Excellent product, exceeded my expectations!"
+132,54,23,5,2024-04-10,Very satisfied with the quality.
+133,164,99,4,2024-12-25,Very satisfied with the quality.
+134,112,43,5,2024-09-14,"Works perfectly, highly recommend."
+135,78,49,5,2025-09-26,"Excellent product, exceeded my expectations!"
+136,162,28,5,2025-11-03,Fast delivery and good packaging.
+137,52,27,2,2025-09-05,"Not satisfied, quality could be better."
+138,163,32,4,2024-03-29,"Excellent product, exceeded my expectations!"
+139,99,87,2,2025-01-19,"Not satisfied, quality could be better."
+140,105,50,3,2025-08-02,Decent product for the price.
+141,13,96,3,2026-07-06,"It's okay, does the job."
+142,106,48,5,2024-09-16,Great value for money.
+143,147,72,5,2025-10-16,"Excellent product, exceeded my expectations!"
+144,28,37,4,2026-02-26,"Works perfectly, highly recommend."
+145,81,53,4,2024-09-20,"Works perfectly, highly recommend."
+146,111,65,5,2024-10-10,"Excellent product, exceeded my expectations!"
+147,35,43,3,2025-02-01,"Average quality, expected better."
+148,1,41,5,2024-09-21,"Excellent product, exceeded my expectations!"
+149,85,2,1,2024-07-01,Product stopped working after a week.
+150,70,20,4,2026-08-08,Very satisfied with the quality.

@@ -1,0 +1,114 @@
+{
+  "summary": {
+    "total_test_cases": 10,
+    "passed_sql_guard": 5,
+    "sql_guard_rate": "50.0%",
+    "executed_successfully": 5,
+    "execution_success_rate": "50.0%",
+    "data_matches": 5,
+    "match_rate": "50.0%",
+    "elapsed_seconds": 344.35
+  },
+  "results": [
+    {
+      "id": 1,
+      "question": "List all customers who signed up in 2026, ordered by signup date.",
+      "expected_sql": "SELECT customer_id, customer_name, signup_date FROM customers WHERE signup_date >= '2026-01-01' AND signup_date <= '2026-12-31' ORDER BY signup_date;",
+      "generated_sql": "SELECT * FROM customers WHERE strftime('%Y', signup_date) = '2026' ORDER BY signup_date;",
+      "is_safe": true,
+      "executed": true,
+      "is_match": true,
+      "error": null
+    },
+    {
+      "id": 2,
+      "question": "Of those, which ones are VIP customers?",
+      "expected_sql": "SELECT customer_id, customer_name, signup_date FROM customers WHERE signup_date >= '2026-01-01' AND signup_date <= '2026-12-31' AND customer_segment = 'VIP' ORDER BY signup_date;",
+      "generated_sql": "SELECT * FROM customers WHERE signup_date BETWEEN '2026-01-01' AND '2026-12-31' AND customer_segment = 'VIP' ORDER BY signup_date;",
+      "is_safe": true,
+      "executed": true,
+      "is_match": true,
+      "error": null
+    },
+    {
+      "id": 3,
+      "question": "What is the name and price of the most expensive product?",
+      "expected_sql": "SELECT product_name, price FROM products ORDER BY price DESC LIMIT 1;",
+      "generated_sql": "SELECT product_name, price FROM products ORDER BY price DESC LIMIT 1",
+      "is_safe": true,
+      "executed": true,
+      "is_match": true,
+      "error": null
+    },
+    {
+      "id": 4,
+      "question": "Show the 5 cheapest active products.",
+      "expected_sql": "SELECT product_name, price FROM products WHERE is_active = 1 ORDER BY price ASC LIMIT 5;",
+      "generated_sql": "SELECT product_name, price FROM products WHERE is_active = 1 ORDER BY price ASC LIMIT 5;",
+      "is_safe": true,
+      "executed": true,
+      "is_match": true,
+      "error": null
+    },
+    {
+      "id": 5,
+      "question": "Which of those 5 cheapest active products are supplied by suppliers based in India?",
+      "expected_sql": "WITH cheapest5 AS (SELECT product_id, product_name, price, supplier_id FROM products WHERE is_active = 1 ORDER BY price ASC LIMIT 5) SELECT c.product_name, c.price FROM cheapest5 c JOIN suppliers s ON c.supplier_id = s.supplier_id WHERE s.country = 'India';",
+      "generated_sql": "SELECT p.product_name, p.price\nFROM (\n    SELECT product_name, price, supplier_id\n    FROM products\n    WHERE is_active = 1\n    ORDER BY price ASC\n    LIMIT 5\n) AS p\nJOIN suppliers s ON p.supplier_id = s.supplier_id\nWHERE s.country = 'India'",
+      "is_safe": true,
+      "executed": true,
+      "is_match": true,
+      "error": null
+    },
+    {
+      "id": 6,
+      "question": "How many customers are there in total?",
+      "expected_sql": "SELECT COUNT(*) AS total_customers FROM customers;",
+      "generated_sql": "",
+      "is_safe": false,
+      "executed": false,
+      "is_match": false,
+      "error": null
+    },
+    {
+      "id": 7,
+      "question": "List all distinct cities where customers live.",
+      "expected_sql": "SELECT DISTINCT city FROM customers ORDER BY city;",
+      "generated_sql": "",
+      "is_safe": false,
+      "executed": false,
+      "is_match": false,
+      "error": null
+    },
+    {
+      "id": 8,
+      "question": "Which orders have a status of 'Cancelled'?",
+      "expected_sql": "SELECT order_id, customer_id, order_date FROM orders WHERE order_status = 'Cancelled' ORDER BY order_id;",
+      "generated_sql": "",
+      "is_safe": false,
+      "executed": false,
+      "is_match": false,
+      "error": null
+    },
+    {
+      "id": 9,
+      "question": "How many of those cancelled orders were placed by VIP customers?",
+      "expected_sql": "SELECT COUNT(*) AS vip_cancelled_orders FROM orders o JOIN customers c ON o.customer_id = c.customer_id WHERE o.order_status = 'Cancelled' AND c.customer_segment = 'VIP';",
+      "generated_sql": "",
+      "is_safe": false,
+      "executed": false,
+      "is_match": false,
+      "error": null
+    },
+    {
+      "id": 10,
+      "question": "What is the email address of the customer with ID 10?",
+      "expected_sql": "SELECT email FROM customers WHERE customer_id = 10;",
+      "generated_sql": "",
+      "is_safe": false,
+      "executed": false,
+      "is_match": false,
+      "error": null
+    }
+  ]
+}

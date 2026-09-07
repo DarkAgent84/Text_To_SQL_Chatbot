@@ -1,0 +1,201 @@
+product_id,product_name,category_id,supplier_id,price,stock_quantity,is_active
+1,Car Accessories Deluxe Lite,36,28,29837.14,282,0
+2,Footwear Essential Max,18,15,28466.76,99,1
+3,Premium Camping Gear,13,18,47263.85,390,1
+4,Premium Furniture Max,7,15,1370.94,155,1
+5,Footwear Item V1,18,36,11451.53,484,0
+6,Furniture Item Max,7,31,16673.29,175,1
+7,Women's Clothing Combo Pack V2,17,5,51973.2,38,1
+8,Premium Lighting Max,10,6,50269.77,61,0
+9,Tools Deluxe Plus,39,50,81773.54,231,1
+10,Car Care Combo Pack Max,38,37,86412.78,313,1
+11,Premium Ayurveda Plus,49,17,21662.88,81,1
+12,Fitness Equipment Item Pro,11,29,26283.21,241,1
+13,Accessories Essential,19,5,23882.46,474,1
+14,Office Supplies Item Plus,28,42,74413.14,137,1
+15,Action Camera 4K Max,4,39,82914.21,292,0
+16,Home Decor Combo Pack Max,8,45,45091.45,140,0
+17,Notebooks Item V1,29,28,22607.07,310,1
+18,Yoga Deluxe V1,15,49,51903.6,138,1
+19,Action Figures Deluxe,31,18,39285.06,300,0
+20,Cookware Combo Pack Lite,6,27,9502.53,344,1
+21,Haircare Combo Pack,22,19,73238.59,206,1
+22,Art Supplies Item Lite,30,17,69551.06,497,1
+23,Staples Deluxe,43,27,32622.96,266,0
+24,Snacks Combo Pack V1,41,14,83496.78,68,0
+25,Organic Foods Combo Pack V2,45,2,71957.3,312,1
+26,Bags Deluxe V1,20,36,89302.92,116,1
+27,Art Supplies Item V3,30,32,45846.59,150,1
+28,Non-Fiction Combo Pack,27,16,34583.38,75,1
+29,Kids Smartwatch Pro,5,22,24117.82,260,1
+30,Accessories Essential,19,10,31125.64,248,0
+31,Art Supplies Essential Plus,30,45,21096.26,197,0
+32,Noise Cancelling Buds,3,46,34807.48,196,1
+33,Board Games Item V3,32,33,78285.06,170,0
+34,Furniture Deluxe,7,1,78395.87,210,1
+35,Sports Watch Max,5,22,58519.32,204,1
+36,Dairy Deluxe Pro,44,21,68369.22,455,1
+37,Tyres Item Plus,40,41,89767.59,148,1
+38,Office Supplies Item V2,28,29,81316.82,154,1
+39,Skincare Item Max,21,23,22052.35,75,0
+40,Premium Motorcycle Gear V3,37,12,34489.73,446,1
+41,Board Games Deluxe V3,32,15,41414.39,131,1
+42,Art Supplies Essential V3,30,5,88888.89,177,1
+43,Snacks Combo Pack Max,41,30,89942.68,102,0
+44,Premium Furniture Pro,7,37,89342.01,152,1
+45,ChromeBook Lite Max,2,1,70069.21,352,1
+46,Tools Combo Pack Max,39,50,72192.68,311,1
+47,Premium Snacks Max,41,44,59359.42,393,1
+48,Snacks Item V1,41,20,52202.69,18,1
+49,Cookware Essential Lite,6,48,11980.17,103,1
+50,Educational Toys Deluxe Max,34,11,84981.48,423,1
+51,Personal Hygiene Essential V2,48,30,67897.22,73,1
+52,Dairy Combo Pack Lite,44,6,23873.83,8,1
+53,Art Supplies Essential Max,30,38,84631.24,327,1
+54,Premium Dairy,44,2,50569.52,483,1
+55,Beverages Item,42,45,10588.17,210,1
+56,Noise Cancelling Buds,3,8,48424.44,455,0
+57,Art Supplies Essential Pro,30,38,79697.7,80,1
+58,Board Games Deluxe Pro,32,18,19631.54,190,0
+59,Men's Clothing Essential V2,16,44,88007.04,462,1
+60,Mirrorless Camera Max,4,13,76337.18,486,0
+61,Premium Cookware V1,6,4,88994.0,125,1
+62,AMOLED Smartwatch Plus,5,38,21045.58,446,1
+63,Tools Item Max,39,10,22632.81,277,1
+64,Home Decor Item V3,8,1,21489.05,404,1
+65,Gaming Laptop X Max,2,4,47394.09,216,1
+66,Action Figures Combo Pack Lite,31,33,45394.1,232,1
+67,Medical Supplies Deluxe Max,47,30,5567.2,16,0
+68,Fiction Combo Pack V2,26,32,6705.82,228,1
+69,Skincare Deluxe V3,21,5,57012.6,320,1
+70,Grooming Deluxe Max,25,30,9015.14,221,1
+71,Beverages Deluxe Plus,42,28,37300.84,117,0
+72,Fiction Combo Pack V2,26,21,23013.59,341,1
+73,Dairy Combo Pack V2,44,6,38924.7,48,1
+74,Storage & Organization Deluxe V1,9,38,29734.17,288,1
+75,Non-Fiction Essential Pro,27,47,54075.87,148,1
+76,Furniture Deluxe Plus,7,10,76269.01,115,1
+77,Car Accessories Essential V2,36,49,72668.2,116,1
+78,Tools Essential V1,39,12,27876.72,391,1
+79,Makeup Item V3,23,10,6354.73,206,1
+80,Cookware Deluxe Plus,6,25,14250.09,175,1
+81,Medical Supplies Essential V2,47,4,55642.65,387,1
+82,Footwear Combo Pack Pro,18,32,24656.7,213,1
+83,Makeup Combo Pack V2,23,19,43847.28,304,1
+84,Over-Ear Headphones Pro,3,39,27196.6,105,1
+85,Premium Fitness Trackers Max,50,19,44813.94,4,0
+86,Premium Cycling Pro,12,35,50328.25,257,1
+87,Sports Watch V1,5,28,82911.5,0,1
+88,Motorcycle Gear Combo Pack Pro,37,46,10453.09,149,1
+89,Premium Skincare,21,45,39359.39,46,1
+90,Men's Clothing Combo Pack Pro,16,34,27992.68,446,1
+91,Yoga Essential V3,15,5,47800.37,59,1
+92,Fitness Trackers Essential Lite,50,47,73370.83,331,1
+93,Premium Furniture Max,7,13,68442.36,79,1
+94,Cycling Combo Pack,12,49,40455.58,297,1
+95,Snacks Essential V3,41,29,56860.52,227,1
+96,Car Care Item Lite,38,33,40726.06,237,1
+97,Fragrances Essential V2,24,42,8216.66,438,0
+98,Art Supplies Deluxe V1,30,29,58699.19,293,1
+99,Tools Combo Pack V3,39,4,80930.5,416,1
+100,Vitamins & Supplements Item V3,46,3,89188.64,225,1
+101,Fragrances Essential Max,24,25,61131.91,174,1
+102,Snacks Essential V2,41,22,34851.12,348,1
+103,Medical Supplies Deluxe V3,47,22,12813.41,340,1
+104,Bags Combo Pack V3,20,39,27930.41,44,0
+105,Beverages Essential V3,42,43,66514.84,485,1
+106,Beverages Combo Pack Lite,42,2,85609.12,93,1
+107,Fitness Trackers Combo Pack Plus,50,15,7036.14,80,1
+108,Puzzles Deluxe V1,33,43,55660.03,393,0
+109,Premium Lighting V3,10,45,81247.77,415,0
+110,Sports Earphones Lite,3,44,40032.46,497,1
+111,Ayurveda Combo Pack Plus,49,35,72794.29,495,0
+112,Camping Gear Essential,13,30,34429.33,399,0
+113,Premium Fitness Equipment V3,11,17,78682.11,247,1
+114,Vitamins & Supplements Deluxe V2,46,19,24622.94,83,1
+115,Office Supplies Item Plus,28,29,2496.65,477,1
+116,Fiction Deluxe Lite,26,16,33803.65,42,1
+117,Skincare Item Lite,21,10,82572.92,147,0
+118,Premium Organic Foods,45,29,7221.4,464,1
+119,Premium Team Sports Pro,14,8,27172.49,122,1
+120,Men's Clothing Combo Pack,16,5,45033.65,464,1
+121,Snacks Deluxe Plus,41,46,239.63,220,1
+122,Men's Clothing Deluxe Pro,16,12,47160.26,44,1
+123,AMOLED Smartwatch V1,5,25,57245.8,23,1
+124,Women's Clothing Item Lite,17,5,59172.69,376,1
+125,Fitness Trackers Deluxe Lite,50,9,30534.4,280,1
+126,Fitness Trackers Combo Pack,50,41,5771.74,70,0
+127,Noise Cancelling Buds Plus,3,3,3866.34,454,1
+128,Puzzles Combo Pack,33,17,17279.2,332,1
+129,Fitness Trackers Item Lite,50,18,39380.93,189,0
+130,Personal Hygiene Combo Pack Pro,48,22,62315.96,255,1
+131,Educational Toys Essential V2,34,47,54259.55,221,1
+132,Outdoor Toys Essential Lite,35,7,26677.03,339,0
+133,Tools Combo Pack V3,39,45,3906.73,229,1
+134,Tyres Combo Pack Max,40,41,5255.49,486,0
+135,Fragrances Deluxe V3,24,2,61059.19,312,0
+136,Over-Ear Headphones V2,3,16,32656.34,188,1
+137,Premium Tools,39,24,7011.0,391,1
+138,Educational Toys Essential Pro,34,21,86449.75,128,1
+139,Premium Personal Hygiene,48,34,10685.71,288,1
+140,Vitamins & Supplements Combo Pack Plus,46,40,89875.73,470,1
+141,Premium Home Decor V2,8,29,40114.5,366,1
+142,Dairy Essential Lite,44,46,26202.57,278,1
+143,Premium Fitness Equipment Lite,11,33,71305.7,103,1
+144,Board Games Item Lite,32,36,72348.19,240,1
+145,Tyres Item V2,40,20,64725.38,368,0
+146,Fitness Trackers Combo Pack V2,50,9,6766.44,329,0
+147,Dairy Deluxe Lite,44,9,49661.18,400,1
+148,Premium Fitness Trackers Pro,50,33,74841.03,29,1
+149,Premium Bags V3,20,21,31206.48,116,1
+150,Cookware Essential Plus,6,41,11351.81,141,1
+151,Tyres Deluxe V2,40,33,84749.47,304,1
+152,Fitness Equipment Deluxe Lite,11,37,2649.78,443,1
+153,Beverages Deluxe Max,42,42,37550.15,293,1
+154,Board Games Deluxe Max,32,42,22113.52,248,0
+155,Bags Combo Pack V2,20,45,37463.39,226,0
+156,Team Sports Essential V3,14,21,66103.56,164,1
+157,Premium Fiction Lite,26,33,21831.23,164,1
+158,Footwear Combo Pack Plus,18,10,85089.1,149,0
+159,Premium Men's Clothing Lite,16,37,68703.61,98,0
+160,Puzzles Combo Pack,33,20,85075.43,47,0
+161,Premium Men's Clothing Lite,16,4,53815.94,254,0
+162,Accessories Deluxe V1,19,7,23875.11,452,1
+163,Ayurveda Combo Pack Lite,49,3,50606.34,292,1
+164,Car Accessories Essential V2,36,25,49531.15,392,1
+165,Storage & Organization Item Pro,9,24,50248.08,174,1
+166,Premium Ayurveda Plus,49,39,3717.92,257,1
+167,Storage & Organization Essential,9,34,80391.54,311,1
+168,Skincare Deluxe Lite,21,11,66563.81,316,1
+169,Car Care Essential,38,46,73434.82,244,1
+170,Haircare Item Pro,22,38,65305.65,461,1
+171,Tools Combo Pack Max,39,42,52103.84,398,1
+172,Medical Supplies Item,47,11,55813.25,370,0
+173,Premium Lighting V1,10,37,17250.51,57,0
+174,Skincare Combo Pack V3,21,27,45212.57,211,0
+175,Personal Hygiene Item V3,48,34,89830.25,167,0
+176,Educational Toys Combo Pack Lite,34,12,30874.2,273,1
+177,Dairy Essential,44,13,50270.99,143,1
+178,Bags Essential Plus,20,45,43233.33,163,1
+179,Accessories Item Pro,19,26,69597.48,489,1
+180,Accessories Item Max,19,46,39868.61,474,1
+181,Personal Hygiene Combo Pack Plus,48,13,83977.85,139,1
+182,Storage & Organization Item Plus,9,16,47839.63,464,1
+183,DSLR Camera Kit Pro,4,22,61338.16,52,1
+184,iPhone Clone Case Bundle V3,1,27,79067.13,451,0
+185,Premium Beverages Max,42,21,81722.53,31,1
+186,Beverages Deluxe Plus,42,35,84305.58,436,1
+187,Premium Non-Fiction V1,27,26,84300.13,96,1
+188,Wireless Earbuds Pro Max,3,37,88470.15,476,1
+189,Art Supplies Deluxe,30,9,24627.05,240,1
+190,Premium Haircare,22,42,1365.17,96,1
+191,Accessories Deluxe Plus,19,12,80743.14,328,0
+192,Puzzles Essential V2,33,26,88352.5,95,0
+193,Premium Skincare V1,21,17,67861.72,229,1
+194,Bags Deluxe V1,20,17,21342.6,355,1
+195,Art Supplies Essential V3,30,26,80570.14,473,1
+196,Organic Foods Item Max,45,24,86165.71,113,0
+197,Lighting Combo Pack Lite,10,27,42426.44,468,1
+198,Premium Ayurveda V2,49,34,32623.46,361,1
+199,Camera Tripod Set Plus,4,37,29596.78,85,0
+200,Premium Home Decor,8,6,72800.42,229,0

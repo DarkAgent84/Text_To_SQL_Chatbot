@@ -1,0 +1,101 @@
+customer_id,customer_name,email,phone,city,state,signup_date,customer_segment,is_active
+1,Keith Brown,mezajared@example.org,9412328120,Bengaluru,Nebraska,2026-07-19,Premium,1
+2,Kirk Carter,keithcampbell@example.com,9134936183,Kanpur,Tennessee,2023-01-03,VIP,1
+3,Derek Thomas,martinkyle@example.net,9947174648,Lucknow,Ohio,2026-07-01,Premium,1
+4,Bobby Williams MD,cassandra01@example.org,9990490278,Bengaluru,Tennessee,2023-07-01,Premium,1
+5,Donald Shea,fwalters@example.org,9756551256,Indore,Vermont,2024-02-23,Regular,1
+6,Matthew Morales DDS,gibsonleonard@example.com,9168087603,Hyderabad,North Dakota,2023-04-01,Premium,1
+7,Peter Garrett,harrisandrea@example.com,9771093248,Ahmedabad,Alabama,2023-12-18,Premium,1
+8,Anna Gay,murraydavid@example.org,9748467737,Mumbai,Oklahoma,2023-04-02,Premium,1
+9,Connor Greene,michellehill@example.com,9584044997,Ahmedabad,Georgia,2023-11-04,Premium,1
+10,John Cook,ugibson@example.org,9396360576,Lucknow,Missouri,2023-12-21,Regular,0
+11,Rebecca Pearson MD,martineztammy@example.com,9171870262,Mumbai,California,2023-11-10,Regular,1
+12,Wayne Morgan,vsantos@example.net,9865780913,Surat,South Dakota,2023-01-01,VIP,1
+13,Donna Perez,hamiltoncorey@example.net,9172400504,Delhi,Minnesota,2022-03-20,Regular,1
+14,Charles Schmidt,georgemiller@example.com,9937923747,Nagpur,Kentucky,2026-02-01,Regular,0
+15,Stephanie Marshall,erica21@example.com,9594647436,Delhi,New Mexico,2024-11-13,Regular,0
+16,James Howard,victoria40@example.net,9640909743,Ahmedabad,Rhode Island,2023-01-25,Regular,1
+17,Colleen Lee,erica21@example.net,9047095214,Jaipur,Massachusetts,2022-01-04,VIP,0
+18,Casey Anderson,alyssa42@example.com,9745171236,Kanpur,Oklahoma,2025-11-07,VIP,1
+19,Richard Smith,gibsonemily@example.net,9496513709,Kolkata,Oklahoma,2024-01-16,Regular,1
+20,Leonard Holland,tblankenship@example.net,9612004711,Chennai,Kansas,2025-06-30,Premium,1
+21,Brandy Chavez,umatthews@example.org,9617964053,Coimbatore,New Hampshire,2026-01-14,Regular,1
+22,David Cox,amy50@example.com,9431713900,Kolkata,Michigan,2025-09-27,Regular,1
+23,Cameron Cunningham,gallegosangela@example.net,9335290422,Bengaluru,Ohio,2025-02-09,Regular,1
+24,Christopher Guerrero,andersonmichael@example.org,9950240268,Kanpur,Delaware,2025-10-19,VIP,0
+25,Karen Strickland,hayesjeffrey@example.net,9084700766,Ahmedabad,Utah,2025-03-11,Regular,1
+26,Micheal Wallace,morriseddie@example.org,9499856984,Ahmedabad,New Jersey,2023-09-15,Regular,0
+27,Jessica Mcguire,farrelldebra@example.net,9367365766,Lucknow,Washington,2025-05-27,Regular,1
+28,Jeffery Ortega,stephanie71@example.org,9116152809,Lucknow,Oklahoma,2024-06-24,Regular,1
+29,Meagan Jenkins,uparrish@example.org,9494519832,Coimbatore,Texas,2026-06-14,VIP,1
+30,Dr. Gregory Hawkins,farmeraudrey@example.com,9899809402,Delhi,Louisiana,2025-09-11,Regular,0
+31,Ellen Morgan,whitedouglas@example.net,9612018366,Delhi,New Jersey,2023-11-18,Premium,1
+32,Jacob Griffith,wareeric@example.net,9014767976,Ahmedabad,Louisiana,2025-10-09,Regular,1
+33,Jose Reed,campbellerika@example.com,9840369003,Mumbai,Maryland,2022-10-29,Regular,1
+34,Pamela Duran,mark07@example.net,9622683885,Indore,California,2025-06-05,Premium,1
+35,Patrick Graham,umorse@example.net,9696641605,Coimbatore,Hawaii,2024-04-28,Premium,1
+36,Lisa Collier,christopher13@example.com,9968164535,Kanpur,Wyoming,2026-01-11,Regular,1
+37,Jordan Wilson,rebeccabailey@example.net,9231243292,Bengaluru,Wisconsin,2023-05-15,Premium,1
+38,Angela Bean,kmarshall@example.net,9799552717,Indore,New Hampshire,2026-03-18,Premium,1
+39,Rebecca Vargas,william47@example.com,9005411998,Kolkata,Missouri,2026-05-14,Regular,0
+40,Julian Conner,colelisa@example.net,9359782071,Mumbai,Michigan,2024-08-09,Regular,1
+41,Mrs. Maria Williams,hritter@example.net,9925546659,Bengaluru,Arkansas,2024-07-23,Premium,0
+42,Maria Jones,grantpaul@example.com,9925192546,Surat,Florida,2025-02-18,Regular,1
+43,Teresa Collins,vschneider@example.org,9816850542,Indore,Indiana,2025-06-08,Premium,0
+44,Ralph Lee,ericphillips@example.org,9888059296,Indore,Georgia,2024-05-23,VIP,1
+45,Ronald Wise,jenniferwilliams@example.com,9379473834,Kanpur,New Mexico,2022-11-22,Premium,1
+46,Cheyenne Gregory,smurray@example.com,9886239240,Nagpur,Tennessee,2023-06-15,Regular,1
+47,Mr. Timothy Dawson,mitchellkathryn@example.com,9782613750,Nagpur,Nebraska,2026-04-18,Regular,1
+48,Jonathan Young,brooksanthony@example.org,9522047277,Pune,South Carolina,2023-07-17,Regular,1
+49,Bobby Scott,anaacosta@example.net,9614341036,Ahmedabad,South Dakota,2023-04-26,Regular,0
+50,Joyce Rodriguez,bcarlson@example.net,9893246095,Bengaluru,Kansas,2022-06-15,Regular,1
+51,Chelsea Barnett,carlos88@example.net,9880670654,Bengaluru,West Virginia,2025-11-22,Premium,1
+52,Richard Cooper,ingramjill@example.com,9205852772,Kolkata,Florida,2024-04-29,Regular,1
+53,Ricardo Ellis,james30@example.com,9486874034,Mumbai,Minnesota,2024-05-01,Regular,1
+54,Amber Rios,david56@example.com,9765277584,Coimbatore,Colorado,2024-03-08,Premium,1
+55,Angela Morrison,amymorris@example.org,9544796275,Surat,New Hampshire,2026-04-17,Regular,1
+56,Sergio Gomez,yhill@example.org,9165820297,Ahmedabad,Arizona,2023-12-22,Premium,1
+57,David Brewer,patrick90@example.net,9275571928,Kanpur,Mississippi,2025-01-07,Premium,0
+58,Matthew Wright,johnsonjacob@example.net,9681447394,Pune,Vermont,2023-03-28,Regular,1
+59,Katherine Martinez,hayesrachel@example.com,9155188442,Mumbai,Virginia,2024-09-21,Regular,1
+60,Melody Thompson,william13@example.org,9370589578,Bengaluru,Florida,2026-01-23,Premium,1
+61,Angelica Parker,xfox@example.com,9912517785,Jaipur,Florida,2025-06-28,Regular,1
+62,Penny Bowman,katrinaanderson@example.net,9018242253,Surat,Minnesota,2025-04-27,Premium,1
+63,Kelly Campbell,kingcynthia@example.net,9424981829,Kolkata,Pennsylvania,2025-08-09,Regular,1
+64,Matthew Le,megan90@example.org,9109439690,Mumbai,New York,2023-01-08,Regular,1
+65,Kimberly May,timothy64@example.com,9102767735,Pune,Rhode Island,2023-03-10,Regular,1
+66,Scott Flores,theresa25@example.net,9815371473,Nagpur,Georgia,2023-07-24,VIP,1
+67,Dylan Cruz,kwright@example.com,9953278774,Indore,New York,2023-06-01,Regular,1
+68,Tony Wagner,jasongomez@example.org,9479748016,Jaipur,Florida,2026-03-15,Regular,1
+69,Monica Gallagher,brandon09@example.net,9358416878,Lucknow,Louisiana,2023-04-05,Regular,1
+70,Lisa Carr,theresalong@example.com,9852398680,Mumbai,Arizona,2026-03-25,VIP,1
+71,Micheal Brock,ghernandez@example.org,9595269495,Surat,North Carolina,2022-02-11,Regular,1
+72,Kim Erickson,thomas05@example.com,9169409749,Lucknow,Oregon,2024-08-27,Regular,1
+73,Anthony Castillo,rhernandez@example.org,9091307562,Kanpur,Nebraska,2024-08-10,Regular,1
+74,Jennifer Hampton,vsalas@example.net,9028385786,Surat,Massachusetts,2022-12-10,Premium,1
+75,Julia Patel,erica49@example.com,9334843443,Indore,Vermont,2026-05-12,Regular,1
+76,Emily Bailey,keith98@example.com,9652404157,Surat,Tennessee,2022-08-10,Regular,1
+77,John Harris,sarah42@example.org,9993308330,Lucknow,Connecticut,2025-03-25,VIP,1
+78,Mitchell Garcia,adampierce@example.org,9677345401,Kanpur,Tennessee,2024-03-23,Regular,0
+79,Kimberly Sharp,gentrygregory@example.org,9067240049,Indore,Rhode Island,2025-11-15,Premium,1
+80,William Mitchell,ismall@example.net,9743152742,Nagpur,Alabama,2025-11-28,Regular,0
+81,Rachel Bradley,gregorychase@example.com,9685161227,Delhi,Massachusetts,2026-07-08,Premium,0
+82,Adriana Reyes,vmolina@example.com,9990453017,Mumbai,Maryland,2026-05-22,Regular,1
+83,Michael Leblanc,hannah45@example.net,9332727956,Chennai,Vermont,2025-09-16,Regular,1
+84,Kaitlin Medina,kathleenbecker@example.net,9187851910,Indore,Oklahoma,2022-01-26,Regular,1
+85,Christina Herrera,markmeyer@example.org,9397187072,Kolkata,North Carolina,2022-08-05,VIP,1
+86,Justin Hansen,jennifer64@example.org,9391065180,Bengaluru,California,2025-12-19,Regular,0
+87,Mrs. Donna White,katiegood@example.net,9656766182,Ahmedabad,Tennessee,2025-08-25,Premium,0
+88,Barbara Haney,urice@example.org,9004786863,Pune,Kansas,2026-05-06,Regular,0
+89,Christopher Lopez,johnsondonna@example.net,9033119079,Chennai,Utah,2023-07-04,Premium,1
+90,Amber Yang,igonzales@example.org,9028439599,Coimbatore,Wyoming,2023-07-26,Regular,1
+91,Erica Turner,valerieboyd@example.com,9440892687,Surat,Arkansas,2025-03-13,Premium,1
+92,Teresa Powers,heather62@example.com,9628733427,Pune,Arkansas,2022-02-28,Premium,1
+93,Tracy Grant,paulscott@example.com,9175183046,Hyderabad,Utah,2024-09-25,Regular,1
+94,Amanda Jones,timothybooth@example.com,9403317393,Ahmedabad,Montana,2023-11-29,Premium,1
+95,Kristen Rowe,powens@example.com,9445877175,Mumbai,Indiana,2025-02-12,Regular,1
+96,Jason Hart,joycesmith@example.net,9996423536,Hyderabad,Oregon,2022-06-25,Premium,1
+97,Kathryn Pena,jonathan77@example.com,9252287280,Nagpur,North Dakota,2025-02-11,Regular,1
+98,Ryan Landry,duranrobert@example.net,9312038750,Kanpur,South Carolina,2025-08-15,Regular,1
+99,Taylor Durham,ismith@example.net,9600848408,Ahmedabad,Vermont,2022-07-10,Regular,1
+100,Renee Browning,hullalice@example.org,9398454615,Lucknow,Montana,2023-09-20,Regular,1

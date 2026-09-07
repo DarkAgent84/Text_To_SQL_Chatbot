@@ -1,0 +1,25 @@
+# Environments
+venv/
+.venv/
+env/
+
+# Secrets & Local Configs
+.env
+.env.local
+.env.*.local
+
+# Python compiled & cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Databases & local storage
+*.db
+*.sqlite3
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
