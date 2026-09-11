@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Database Connection Manager - Text-to-SQL AI</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+</head>
+<body class="page-connections">
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-title">Text-to-SQL Chatbot</div>
+    </div>
+    <div class="nav-links">
+      <a href="/" class="nav-btn">
+        <span>💬</span> Chatbot Dashboard
+      </a>
+      <a href="/connections.html" class="nav-btn active">
+        <span>⚙️</span> Database Connections
+      </a>
+    </div>
+    <div class="header-meta">
+      <span class="badge badge-status">
+        <span class="status-dot"></span> Online
+      </span>
+      <span class="badge" id="activeDbBadge">Loading DB...</span>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="connections-container">
+    
+    <!-- Left Column: Add / Edit Connection Form -->
+    <div class="conn-form-card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title" id="formTitle">➕ Connect New Database</h2>
+          <p class="card-subtitle">Configure PostgreSQL, MySQL, or SQLite to query with AI</p>
+        </div>
+        <button class="btn-sm btn-ghost" id="btnResetForm" style="display: none;">Reset</button>
+      </div>
+
+      <form id="dbConnectionForm" autocomplete="off">
+        <input type="hidden" id="editConnectionId" value="">
+
+        <!-- Database Type Picker Cards -->
+        <div class="form-group">
+          <label class="form-label">Database Type</label>
+          <div class="db-type-grid">
+            <div class="db-type-card active" data-type="postgresql">
+              <div class="db-icon">🐘</div>
+              <div class="db-name">PostgreSQL</div>
+              <div class="db-default-port">Port 5432</div>
+            </div>
+            <div class="db-type-card" data-type="mysql">
+              <div class="db-icon">🐬</div>
+              <div class="db-name">MySQL</div>
+              <div class="db-default-port">Port 3306</div>
+            </div>
+            <div class="db-type-card" data-type="sqlite">
+              <div class="db-icon">🪶</div>
+              <div class="db-name">SQLite</div>
+              <div class="db-default-port">File / In-Memory</div>
+            </div>
+          </div>
+          <input type="hidden" id="dbTypeInput" value="postgresql">
+        </div>
+
+        <!-- Reference Name (Alias) -->
+        <div class="form-group">
+          <label class="form-label" for="refNameInput">
+            Reference Name <span class="required-star">*</span>
+            <span class="label-hint">(Alias name for this connection)</span>
+          </label>
+          <input
+            type="text"
+            id="refNameInput"
+            class="form-input"
+            placeholder="e.g., Production DB, Sales Postgres, Analytics MySQL"
+            required
+          >
+        </div>
+
+        <!-- Host and Port (Hidden for SQLite) -->
+        <div class="form-row network-fields">
+          <div class="form-group flex-2">
+            <label class="form-label" for="hostInput">Host</label>
+            <input
+              type="text"
+              id="hostInput"
+              class="form-input"
+              placeholder="e.g., localhost or 127.0.0.1 or rds.endpoint"
+            >
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label" for="portInput">Port</label>
+            <input
+              type="number"
+              id="portInput"
+              class="form-input"
+              placeholder="5432"
+            >
+          </div>
+        </div>
+
+        <!-- Database Name -->
+        <div class="form-group network-fields">
+          <label class="form-label" for="dbNameInput">Database Name</label>
+          <input
+            type="text"
+            id="dbNameInput"
+            class="form-input"
+            placeholder="e.g., my_database"
+          >
+        </div>
+
+        <!-- Username and Password (Hidden for SQLite) -->
+        <div class="form-row network-fields">
+          <div class="form-group flex-1">
+            <label class="form-label" for="userInput">Username</label>
+            <input
+              type="text"
+              id="userInput"
+              class="form-input"
+              placeholder="e.g., postgres or root"
+            >
+          </div>
+          <div class="form-group flex-1">
+            <label class="form-label" for="passInput">Password</label>
+            <div class="password-wrap">
+              <input
+                type="password"
+                id="passInput"
+                class="form-input"
+                placeholder="Enter password"
+              >
+              <button type="button" class="btn-toggle-pwd" id="btnTogglePwd" title="Show/Hide password">👁️</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SQLite Specific Field (Visible only when SQLite selected) -->
+        <div class="form-group sqlite-fields" style="display: none;">
+          <label class="form-label" for="sqlitePathInput">
+            SQLite Database File Path
+            <span class="label-hint">(Path relative to workspace or absolute)</span>
+          </label>
+          <input
+            type="text"
+            id="sqlitePathInput"
+            class="form-input"
+            placeholder="e.g., data/my_database.db or ./app.db"
+          >
+        </div>
+
+        <!-- Checkbox: Set as Active -->
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="setActiveCheckbox" checked>
+            <span class="checkbox-custom"></span>
+            <span>Set as active database connection immediately</span>
+          </label>
+        </div>
+
+        <!-- Live Connection Test Result Alert Box -->
+        <div class="test-feedback-box" id="testFeedbackBox" style="display: none;">
+          <div class="feedback-header">
+            <span class="feedback-badge" id="feedbackBadge">Testing...</span>
+            <span class="feedback-latency" id="feedbackLatency"></span>
+          </div>
+          <div class="feedback-body" id="feedbackBody"></div>
+          <div class="feedback-tables" id="feedbackTables"></div>
+        </div>
+
+        <!-- Buttons Toolbar -->
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" id="btnTestConn">
+            <span id="testSpinner" class="btn-spinner" style="display:none;"></span>
+            <span>⚡ Test Connection</span>
+          </button>
+          <button type="submit" class="btn-primary" id="btnSaveConn">
+            <span id="saveSpinner" class="btn-spinner" style="display:none;"></span>
+            <span id="saveBtnText">💾 Save & Connect</span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Right Column: Saved Connections List -->
+    <div class="conn-list-card">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">🗄️ Saved Database Profiles</h2>
+          <p class="card-subtitle">Switch active database or manage stored credentials</p>
+        </div>
+        <button class="btn-sm btn-outline" id="btnRefreshList" title="Refresh List">🔄 Refresh</button>
+      </div>
+
+      <!-- Connections Grid -->
+      <div class="saved-connections-list" id="savedConnectionsList">
+        <div class="conn-list-loading">
+          <div class="spinner"></div>
+          <span>Loading saved connections...</span>
+        </div>
+      </div>
+
+      <!-- Quick Launch Banner -->
+      <div class="quick-launch-banner">
+        <div>
+          <div class="launch-title">Ready to query your database?</div>
+          <div class="launch-desc">Open the dashboard to ask questions in plain English.</div>
+        </div>
+        <a href="/" class="btn-primary btn-launch">
+          <span>Launch Chatbot</span> ➔
+        </a>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="/connections.js"></script>
+</body>
+</html>

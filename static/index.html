@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text-to-SQL AI Chatbot Dashboard</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-title">Text-to-SQL Chatbot</div>
+    </div>
+    <div class="nav-links">
+      <a href="/" class="nav-btn active">
+        <span>💬</span> Chatbot Dashboard
+      </a>
+      <a href="/connections.html" class="nav-btn">
+        <span>⚙️</span> Database Connections
+      </a>
+    </div>
+    <div class="header-meta">
+      <span class="badge badge-status">
+        <span class="status-dot"></span> Online
+      </span>
+      <select id="dbProfileSelect" class="db-selector-dropdown" title="Switch Active Database Connection">
+        <option value="">Loading databases...</option>
+      </select>
+      <span class="badge" id="dialectBadge">Loading DB...</span>
+      <span class="badge" id="modelBadge">Gemini 3.5 Flash</span>
+    </div>
+  </header>
+
+  <!-- Main App Layout -->
+  <div class="app-container">
+    
+    <!-- Sidebar / Quick Prompts -->
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-section-title">💡 Starter Queries</div>
+        <div class="suggestion-chip" data-prompt="List all tables available in this database and their primary purposes.">
+          <span class="chip-icon">📋</span>
+          <span>List all tables and schemas</span>
+        </div>
+        <div class="suggestion-chip" data-prompt="Show the total number of records across each table in this database.">
+          <span class="chip-icon">📊</span>
+          <span>Total records in each table</span>
+        </div>
+        <div class="suggestion-chip" data-prompt="Show the first 5 rows from the primary table.">
+          <span class="chip-icon">🔍</span>
+          <span>Preview first 5 records</span>
+        </div>
+        <div class="suggestion-chip" data-prompt="Summarize the key metrics and distributions in this database.">
+          <span class="chip-icon">📈</span>
+          <span>Summarize key metrics</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Chat Viewport -->
+    <main class="chat-viewport">
+      <div class="chat-feed" id="chatFeed">
+        
+        <!-- Default Welcome Hero -->
+        <div class="welcome-screen" id="welcomeScreen">
+          <div class="welcome-hero-icon">🤖</div>
+          <div class="welcome-title" id="welcomeDbTitle">Query Your Connected Database</div>
+          <div class="welcome-subtitle" id="welcomeDbSubtitle">
+            Ask natural language questions in plain English. The AI dynamically extracts the exact schema, generates accurate SQL, and provides executive insights.
+          </div>
+          <div class="hero-chips">
+            <div class="suggestion-chip" data-prompt="List all tables in this database.">
+              <span class="chip-icon">📋</span>
+              <span>List All Tables</span>
+            </div>
+            <div class="suggestion-chip" data-prompt="What are the total record counts across all tables?">
+              <span class="chip-icon">📊</span>
+              <span>Record Counts</span>
+            </div>
+            <div class="suggestion-chip" data-prompt="Show 5 sample records from the database.">
+              <span class="chip-icon">🔍</span>
+              <span>Sample Records</span>
+            </div>
+            <div class="suggestion-chip" data-prompt="Summarize the database structure and key tables.">
+              <span class="chip-icon">💡</span>
+              <span>Database Summary</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Input Controls -->
+      <footer class="chat-input-bar">
+        <div class="input-container">
+          <textarea
+            class="chat-input"
+            id="questionInput"
+            placeholder="Ask a question about your connected database in natural language..."
+            rows="1"
+          ></textarea>
+          <button class="btn-send" id="btnSend" title="Send Question">
+            <span id="sendIcon">➔</span>
+          </button>
+        </div>
+      </footer>
+    </main>
+
+
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
