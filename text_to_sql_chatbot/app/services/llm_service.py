@@ -26,11 +26,10 @@ def generate_content_with_fallback(contents: str) -> Tuple[Any, str]:
     client = get_client()
     models_to_try = [settings.GEMINI_MODEL]
     fallback_candidates = [
-        "gemini-2.5-flash",
-        "gemini-1.5-flash",
+        "gemini-flash-lite-latest",
+        "gemini-3.5-flash-lite",
+        "gemini-3.6-flash",
         "gemini-3.5-flash",
-        "gemini-3.7-flash",
-        "gemini-2.0-flash",
         "gemini-flash-latest"
     ]
     for candidate in fallback_candidates:

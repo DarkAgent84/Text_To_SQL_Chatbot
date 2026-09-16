@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Loan & Collections Analytics</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+</head>
+<body class="page-dashboard">
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-title">Text-to-SQL Chatbot</div>
+    </div>
+    <div class="nav-links">
+      <a href="/dashboard.html" class="nav-btn active">
+        <span>📊</span> Dashboard
+      </a>
+      <a href="/" class="nav-btn">
+        <span>💬</span> AI Chatbot
+      </a>
+      <a href="/connections.html" class="nav-btn">
+        <span>⚙️</span> Database Connections
+      </a>
+    </div>
+    <div class="header-meta">
+      <span class="badge badge-status">
+        <span class="status-dot"></span> Online
+      </span>
+      <select id="dbProfileSelect" class="db-selector-dropdown" title="Switch Active Database Connection">
+        <option value="">Loading databases...</option>
+      </select>
+      <span class="badge" id="activeDbBadge">Default Database</span>
+    </div>
+  </header>
+
+  <!-- Dashboard Layout Container -->
+  <div class="dashboard-wrapper">
+    
+    <!-- Left Sidebar -->
+    <aside class="dash-sidebar">
+      <!-- Tabs Switcher -->
+      <div class="dash-tab-group">
+        <button class="dash-tab-btn active" id="tabOverviewBtn" data-tab="overview">Overview</button>
+        <button class="dash-tab-btn" id="tabAnalyticsBtn" data-tab="analytics">Analytics</button>
+      </div>
+
+      <!-- Left Sidebar Cards -->
+      <div class="dash-side-cards">
+        
+        <!-- Total Dues Card -->
+        <div class="side-stat-card card-total-dues">
+          <div class="stat-header-label">Total Dues</div>
+          <div class="stat-value" id="sideTotalDues">₹0.00</div>
+          <div class="stat-subtitle text-danger">Outstanding Amount</div>
+        </div>
+
+        <!-- EMI Dues Card -->
+        <div class="side-stat-card card-emi-dues">
+          <div class="stat-header-label">EMI Dues</div>
+          <div class="stat-value" id="sideEmiDues">₹0.00</div>
+          <div class="stat-subtitle text-warning">Pending EMIs</div>
+        </div>
+
+        <!-- Other Charges Card -->
+        <div class="side-stat-card card-other-charges">
+          <div class="stat-header-label">Other Charges</div>
+          <div class="stat-value" id="sideOtherCharges">₹0.00</div>
+          <div class="stat-subtitle text-amber">Additional Fees</div>
+        </div>
+
+        <!-- User Activity Card -->
+        <div class="side-stat-card card-user-activity">
+          <div class="user-act-content">
+            <div class="stat-header-label">User Activity</div>
+            <div class="stat-value text-success" id="sideUserActivity">0 / 0</div>
+            <div class="stat-subtitle text-success">Active Today</div>
+          </div>
+          <div class="user-act-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="dash-main">
+
+      <!-- ================= OVERVIEW VIEW ================= -->
+      <section id="viewOverview" class="dash-view-section active">
+        
+        <!-- Top Metrics Row (4 Cards) -->
+        <div class="dash-top-grid">
+          
+          <!-- Card 1: Total Cases -->
+          <div class="top-metric-card">
+            <div class="top-card-body">
+              <div class="metric-title">Total Cases</div>
+              <div class="metric-number" id="metricTotalCases">0</div>
+              <div class="metric-sub-label text-muted">
+                <span id="metricUnallocatedCases">0</span> Unallocated Cases
+              </div>
+            </div>
+            <div class="top-card-icon icon-blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Card 2: PTP Planned -->
+          <div class="top-metric-card">
+            <div class="top-card-body">
+              <div class="metric-title">PTP Planned</div>
+              <div class="metric-number" id="metricPtpPlanned">₹0.00</div>
+              <div class="metric-growth text-success">
+                <span class="growth-arrow">↗</span> +0% from last month
+              </div>
+            </div>
+            <div class="top-card-icon icon-green">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Card 3: Collections -->
+          <div class="top-metric-card">
+            <div class="top-card-body">
+              <div class="metric-title">Collections</div>
+              <div class="metric-number" id="metricCollections">₹0.00</div>
+              <div class="metric-growth text-success">
+                <span class="growth-arrow">↗</span> +0% from last month
+              </div>
+            </div>
+            <div class="top-card-icon icon-purple">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"/>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Card 4: Resolution -->
+          <div class="top-metric-card">
+            <div class="top-card-body">
+              <div class="metric-title">Resolution</div>
+              <div class="metric-number" id="metricResolution">0%</div>
+              <div class="metric-growth text-success">
+                <span class="growth-arrow">↗</span> +0% from last month
+              </div>
+            </div>
+            <div class="top-card-icon icon-orange">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                <polyline points="17 6 23 6 23 12"/>
+              </svg>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Middle Ribbon Cards (3 Vibrant Solid Cards) -->
+        <div class="dash-ribbon-grid">
+          
+          <!-- Planned Collections -->
+          <div class="ribbon-card ribbon-blue">
+            <div class="ribbon-card-header">
+              <span>Planned Collections</span>
+              <span class="ribbon-icon">📅</span>
+            </div>
+            <div class="ribbon-value" id="ribbonPlanned">₹0.00</div>
+          </div>
+
+          <!-- Unplanned Collections -->
+          <div class="ribbon-card ribbon-green">
+            <div class="ribbon-card-header">
+              <span>Unplanned Collections</span>
+              <span class="ribbon-icon">💲</span>
+            </div>
+            <div class="ribbon-value" id="ribbonUnplanned">₹0.00</div>
+          </div>
+
+          <!-- Total Collections -->
+          <div class="ribbon-card ribbon-purple">
+            <div class="ribbon-card-header">
+              <span>Total Collections</span>
+              <span class="ribbon-icon">📈</span>
+            </div>
+            <div class="ribbon-value" id="ribbonTotal">₹0.00</div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Grid: Left Collection Analytics, Right Bucket Status -->
+        <div class="dash-bottom-grid">
+          
+          <!-- Left Panel: Collection Analytics -->
+          <div class="dash-panel-card">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <span class="panel-icon">🕒</span>
+                <span class="panel-title">Collection Analytics</span>
+              </div>
+              <div class="panel-subtitle" id="collectionAnalyticsSub">Total ₹0.00 | 0 Collections</div>
+            </div>
+
+            <div class="collection-analytics-body">
+              <!-- Donut Chart Canvas Container -->
+              <div class="donut-chart-container">
+                <canvas id="donutChartCanvas" width="180" height="180"></canvas>
+                <div class="donut-center-label">
+                  <div class="donut-pct" id="donutPrimaryPct">100%</div>
+                  <div class="donut-text">Share</div>
+                </div>
+              </div>
+
+              <!-- Payment Types Breakdown List -->
+              <div class="breakdown-list" id="breakdownList">
+                <div class="breakdown-item" data-type="full">
+                  <div class="breakdown-left">
+                    <span class="status-dot dot-green"></span>
+                    <div>
+                      <div class="breakdown-name">Full Payments</div>
+                      <div class="breakdown-count" id="countFull">0 Collections</div>
+                    </div>
+                  </div>
+                  <div class="breakdown-right">
+                    <div class="breakdown-amount" id="amountFull">₹0.00</div>
+                    <div class="breakdown-pct" id="pctFull">0%</div>
+                  </div>
+                </div>
+
+                <div class="breakdown-item" data-type="part">
+                  <div class="breakdown-left">
+                    <span class="status-dot dot-blue"></span>
+                    <div>
+                      <div class="breakdown-name">Part Payments</div>
+                      <div class="breakdown-count" id="countPart">0 Collections</div>
+                    </div>
+                  </div>
+                  <div class="breakdown-right">
+                    <div class="breakdown-amount" id="amountPart">₹0.00</div>
+                    <div class="breakdown-pct" id="pctPart">0%</div>
+                  </div>
+                </div>
+
+                <div class="breakdown-item" data-type="settlement">
+                  <div class="breakdown-left">
+                    <span class="status-dot dot-purple"></span>
+                    <div>
+                      <div class="breakdown-name">Settlement Payments</div>
+                      <div class="breakdown-count" id="countSettlement">0 Collections</div>
+                    </div>
+                  </div>
+                  <div class="breakdown-right">
+                    <div class="breakdown-amount" id="amountSettlement">₹0.00</div>
+                    <div class="breakdown-pct" id="pctSettlement">0%</div>
+                  </div>
+                </div>
+
+                <div class="breakdown-item" data-type="foreclosure">
+                  <div class="breakdown-left">
+                    <span class="status-dot dot-amber"></span>
+                    <div>
+                      <div class="breakdown-name">Foreclosure Payments</div>
+                      <div class="breakdown-count" id="countForeclosure">0 Collections</div>
+                    </div>
+                  </div>
+                  <div class="breakdown-right">
+                    <div class="breakdown-amount" id="amountForeclosure">₹0.00</div>
+                    <div class="breakdown-pct" id="pctForeclosure">0%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Summary Pills -->
+            <div class="panel-summary-pills">
+              <div class="summary-pill pill-green">
+                <div class="pill-label">Total Amount</div>
+                <div class="pill-value" id="pillTotalAmount">₹0.00</div>
+              </div>
+              <div class="summary-pill pill-blue">
+                <div class="pill-label">Total Unique Cases</div>
+                <div class="pill-value" id="pillUniqueCases">0</div>
+              </div>
+              <div class="summary-pill pill-purple">
+                <div class="pill-label">Avg per Case</div>
+                <div class="pill-value" id="pillAvgPerCase">₹0.00</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Panel: Internal Bucket Movement Status -->
+          <div class="dash-panel-card">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <span class="panel-icon">📄</span>
+                <span class="panel-title">Internal Bucket Movement Status</span>
+              </div>
+              <div class="bucket-controls">
+                <button class="btn-sm btn-ghost" id="toggleBucketViewBtn" title="Toggle Bucket View">📊 View Matrix</button>
+              </div>
+            </div>
+
+            <!-- Default / Empty State or Live Bucket Matrix -->
+            <div class="bucket-status-container" id="bucketStatusContainer">
+              <!-- Empty placeholder as in screenshot -->
+              <div class="bucket-empty-box" id="bucketEmptyBox">
+                <div class="empty-placeholder-text">No Internal Bucket Data Available</div>
+              </div>
+
+              <!-- Live Bucket Data Table / Progress Bars (Interactive) -->
+              <div class="bucket-matrix-box" id="bucketMatrixBox" style="display: none;">
+                <div class="bucket-matrix-table-wrap">
+                  <table class="dash-table">
+                    <thead>
+                      <tr>
+                        <th>Bucket Stage</th>
+                        <th>Total Cases</th>
+                        <th>Total Outstanding Dues</th>
+                        <th>Share</th>
+                      </tr>
+                    </thead>
+                    <tbody id="bucketTableBody">
+                      <!-- Dynamic rows -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ================= ANALYTICS VIEW ================= -->
+      <section id="viewAnalytics" class="dash-view-section" style="display: none;">
+        <div class="analytics-grid">
+          
+          <!-- State-wise Collections -->
+          <div class="dash-panel-card">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <span class="panel-icon">🗺️</span>
+                <span class="panel-title">State-Wise Collections Performance</span>
+              </div>
+            </div>
+            <div class="analytics-bars-container" id="stateBarsContainer">
+              <div class="loading-state">Loading state performance...</div>
+            </div>
+          </div>
+
+          <!-- Payment Mode Distribution -->
+          <div class="dash-panel-card">
+            <div class="panel-header">
+              <div class="panel-title-wrap">
+                <span class="panel-icon">💳</span>
+                <span class="panel-title">Payment Mode Distribution</span>
+              </div>
+            </div>
+            <div class="analytics-bars-container" id="modeBarsContainer">
+              <div class="loading-state">Loading payment mode distribution...</div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="/dashboard.js"></script>
+</body>
+</html>
