@@ -160,6 +160,42 @@ def set_active_target_engine(connection_obj, db: Session) -> Dict[str, Any]:
     return _active_connection_info
 
 
+def reset_active_target_engine_to_default(db: Optional[Session] = None) -> Dict[str, Any]:
+    """Resets the active target engine to default SQLite database."""
+    global _active_target_engine, _active_connection_info
+    if db is not None:
+        from app.core.models import DatabaseConnection
+        try:
+            db.query(DatabaseConnection).update({DatabaseConnection.is_active: False})
+            db.commit()
+        except Exception:
+            pass
+
+    if _active_target_engine is not None and _active_target_engine != engine:
+        try:
+            _active_target_engine.dispose()
+        except Exception:
+            pass
+
+    url = settings.DATABASE_URL
+    connect_args = {"check_same_thread": False} if "sqlite" in url else {}
+    _active_target_engine = create_engine(url, pool_pre_ping=True, connect_args=connect_args)
+    _active_connection_info = {
+        "id": None,
+        "reference_name": "Default Database",
+        "db_type": "sqlite",
+        "database_name": "app.db",
+        "host": "localhost",
+        "port": None,
+        "is_active": True
+    }
+
+    from app.core.db_schema import invalidate_schema_cache
+    invalidate_schema_cache()
+
+    return _active_connection_info
+
+
 def get_active_connection_info() -> Dict[str, Any]:
     global _active_connection_info
     return _active_connection_info

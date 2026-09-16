@@ -8,7 +8,8 @@ from app.api.schemas import (
 )
 from app.core.database import (
     get_db, execute_query, get_chat_history, test_db_connection_params,
-    set_active_target_engine, get_active_connection_info, get_target_engine
+    set_active_target_engine, get_active_connection_info, get_target_engine,
+    reset_active_target_engine_to_default
 )
 from app.core.models import Chat, Message, DatabaseConnection
 from app.core.sql_guard import is_safe_query
@@ -179,19 +180,26 @@ def delete_connection(connection_id: int, db: Session = Depends(get_db)):
     """Delete a saved database connection profile."""
     conn = db.query(DatabaseConnection).filter(DatabaseConnection.id == connection_id).first()
     if not conn:
-        raise HTTPException(status_code=404, detail="Connection not found")
+        raise HTTPException(status_code=404, detail="Connection profile not found")
 
     was_active = conn.is_active
+    ref_name = conn.reference_name
     db.delete(conn)
     db.commit()
 
     if was_active:
-        # Fallback to another connection or default
+        # Fallback to next available connection or reset to default
         next_conn = db.query(DatabaseConnection).first()
         if next_conn:
-            set_active_target_engine(next_conn, db)
+            try:
+                set_active_target_engine(next_conn, db)
+            except Exception as e:
+                print(f"[Delete Connection] Failed to activate fallback connection: {e}")
+                reset_active_target_engine_to_default(db)
+        else:
+            reset_active_target_engine_to_default(db)
 
-    return {"status": "deleted", "id": connection_id}
+    return {"status": "deleted", "id": connection_id, "reference_name": ref_name}
 
 
 @router.post("/connections/{connection_id}/activate", tags=["Connections"])

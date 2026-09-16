@@ -283,33 +283,57 @@ document.addEventListener('DOMContentLoaded', () => {
             ${
               conn.is_active
                 ? `<button class="btn-sm btn-active-indicator" disabled>✓ Connected</button>`
-                : `<button class="btn-sm btn-connect" onclick="window.handleActivate(${conn.id})">⚡ Connect</button>`
+                : `<button class="btn-sm btn-connect" data-action="activate" data-id="${conn.id}" onclick="window.handleActivate(${conn.id})">⚡ Connect</button>`
             }
-            <button class="btn-sm btn-outline" onclick="window.handleEdit(${conn.id})" title="Edit Connection">✏️ Edit</button>
-            <button class="btn-sm btn-danger" onclick="window.handleDelete(${conn.id})" title="Delete Connection">🗑️</button>
+            <button class="btn-sm btn-outline" data-action="edit" data-id="${conn.id}" onclick="window.handleEdit(${conn.id})" title="Edit Connection">✏️ Edit</button>
+            <button class="btn-sm btn-danger btn-delete-conn" data-action="delete" data-id="${conn.id}" onclick="window.handleDelete(${conn.id})" title="Delete Connection">🗑️ Delete</button>
           </div>
         </div>
       `;
     }).join('');
   }
 
+  // Event Delegation for action buttons
+  savedConnectionsList.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const id = parseInt(btn.dataset.id, 10);
+    if (!id) return;
+
+    if (action === 'delete') {
+      e.preventDefault();
+      e.stopPropagation();
+      await handleDelete(id);
+    } else if (action === 'edit') {
+      e.preventDefault();
+      e.stopPropagation();
+      await handleEdit(id);
+    } else if (action === 'activate') {
+      e.preventDefault();
+      e.stopPropagation();
+      await handleActivate(id);
+    }
+  });
+
   // Activate Connection Profile
-  window.handleActivate = async (id) => {
+  async function handleActivate(id) {
     await activateConnection(id, true);
-  };
+  }
+  window.handleActivate = handleActivate;
 
   async function activateConnection(id, refreshUI = true) {
     try {
       const res = await fetch(`/api/v1/connections/${id}/activate`, {
         method: 'POST'
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.detail || 'Failed to activate connection');
+        alert(data.detail || data.error || 'Failed to activate connection');
         return;
       }
       if (refreshUI) {
-        showToast(`Activated: ${data.connection.reference_name}`, 'success');
+        showToast(`Activated: ${data.connection?.reference_name || 'Database'}`, 'success');
         await fetchSavedConnections();
         await fetchActiveConnection();
       }
@@ -319,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Edit Connection Profile
-  window.handleEdit = async (id) => {
+  async function handleEdit(id) {
     try {
       const res = await fetch('/api/v1/connections');
       const list = await res.json();
@@ -351,22 +375,30 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
       console.error(e);
     }
-  };
+  }
+  window.handleEdit = handleEdit;
 
   // Delete Connection Profile
-  window.handleDelete = async (id) => {
+  async function handleDelete(id) {
     if (!confirm('Are you sure you want to delete this saved connection profile?')) return;
     try {
       const res = await fetch(`/api/v1/connections/${id}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        showToast('Connection profile deleted', 'info');
+        showToast(`Deleted profile ${data.reference_name ? '"' + data.reference_name + '"' : ''}`, 'info');
+        if (editConnectionId.value == id) {
+          resetForm();
+        }
         await fetchSavedConnections();
         await fetchActiveConnection();
+      } else {
+        alert(data.detail || data.error || 'Failed to delete connection profile.');
       }
     } catch (e) {
-      alert('Failed to delete connection.');
+      alert('Network error while deleting connection profile.');
     }
-  };
+  }
+  window.handleDelete = handleDelete;
 
   // Fetch Active Connection Badge in Header
   async function fetchActiveConnection() {
