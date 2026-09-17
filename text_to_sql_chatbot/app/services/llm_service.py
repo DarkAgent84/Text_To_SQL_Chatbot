@@ -1,13 +1,23 @@
+"""
+AI / LLM Service: Text-to-SQL Generation, Self-Correction, and Data Interpretation.
+"""
+
 import json
-from typing import List, Dict, Any, Tuple
+import time
+import re
+import logging
+from typing import List, Dict, Any, Tuple, Optional
 from google import genai
 
 from app.config import settings
 from app.core.database import get_target_engine, get_active_connection_info
 from app.core.db_schema import get_db_schema
 
+logger = logging.getLogger(__name__)
+
 
 def get_client() -> genai.Client:
+    """Initializes and returns a Google GenAI Client with API key validation."""
     key = settings.GEMINI_API_KEY
     if not key:
         raise ValueError(
@@ -20,57 +30,75 @@ def get_client() -> genai.Client:
 def generate_content_with_fallback(contents: str) -> Tuple[Any, str]:
     """
     Attempts to generate content using the configured GEMINI_MODEL.
-    If a rate limit (429), quota limit, or transient 503 occurs,
-    automatically switches to candidate fallback models.
+    If transient network errors, rate limits (429), or model unavailabilities occur,
+    it automatically retries with backoff and cascades through fallback models.
     """
-    client = get_client()
     models_to_try = [settings.GEMINI_MODEL]
-    fallback_candidates = [
-        "gemini-flash-lite-latest",
-        "gemini-3.5-flash-lite",
-        "gemini-3.6-flash",
-        "gemini-3.5-flash",
-        "gemini-flash-latest"
-    ]
-    for candidate in fallback_candidates:
+    for candidate in settings.GEMINI_FALLBACK_MODELS:
         if candidate.lower() not in [m.lower() for m in models_to_try]:
             models_to_try.append(candidate)
 
     last_exception = None
-    for idx, model_name in enumerate(models_to_try):
-        try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=contents,
-            )
-            return response, model_name
-        except Exception as e:
-            last_exception = e
-            err_str = str(e).lower()
-            if any(k in err_str for k in ["429", "resource_exhausted", "quota", "503", "unavailable", "404", "not_found"]):
-                next_model = models_to_try[idx + 1] if idx + 1 < len(models_to_try) else "none"
-                print(f"[Model Fallback] '{model_name}' unavailable ({e}). Retrying with '{next_model}'...")
-                continue
-            raise e
+    fatal_auth_keywords = ["api_key_invalid", "permission_denied", "unauthenticated", "invalid_api_key"]
 
-    raise last_exception or RuntimeError("Failed to generate content from Gemini.")
+    for idx, model_name in enumerate(models_to_try):
+        max_attempts_per_model = 2
+        for attempt in range(max_attempts_per_model):
+            try:
+                client = get_client()
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=contents,
+                )
+                return response, model_name
+            except Exception as e:
+                last_exception = e
+                err_str = str(e).lower()
+
+                # If API key itself is completely invalid, fail fast
+                if any(k in err_str for k in fatal_auth_keywords):
+                    raise e
+
+                # Retryable network/service errors
+                if attempt < max_attempts_per_model - 1:
+                    wait_sec = (attempt + 1) * 1.5
+                    logger.warning(f"[Model Retry] '{model_name}' attempt {attempt + 1} failed: {e}. Retrying in {wait_sec}s...")
+                    time.sleep(wait_sec)
+                    continue
+                else:
+                    next_model = models_to_try[idx + 1] if idx + 1 < len(models_to_try) else "none"
+                    logger.warning(f"[Model Fallback] '{model_name}' failed after {max_attempts_per_model} attempts ({e}). Falling back to '{next_model}'...")
+                    break
+
+    raise last_exception or RuntimeError("Failed to generate content from Gemini AI.")
 
 
 def get_dialect_rules() -> Tuple[str, str]:
+    """Returns the SQL dialect name and syntax guidelines for the active database engine."""
     target = get_target_engine()
     dialect_name = target.dialect.name.upper()
 
-    if dialect_name == "POSTGRESQL":
-        rules = "Use standard PostgreSQL functions (e.g., EXTRACT(YEAR FROM date_col), TO_CHAR(), NOW(), ILIKE for case-insensitive search)."
+    if dialect_name in ("POSTGRESQL", "POSTGRES"):
+        rules = (
+            "- Use standard PostgreSQL functions (e.g. EXTRACT(YEAR FROM date_col), TO_CHAR(), NOW(), ILIKE for case-insensitive search).\n"
+            "- Double-quote table and column names if they contain uppercase letters or spaces (e.g. \"Total Amount\")."
+        )
     elif dialect_name == "MYSQL":
-        rules = "Use standard MySQL functions (e.g., YEAR(date_col), DATE_FORMAT(), NOW(), IFNULL()). Use backticks for reserved table/column names if needed."
+        rules = (
+            "- Use standard MySQL functions (e.g. YEAR(date_col), DATE_FORMAT(), NOW(), IFNULL()).\n"
+            "- Use backticks for reserved table/column names if needed (e.g. `order`, `group`)."
+        )
     else:
-        rules = "Use standard SQLite functions (e.g., strftime('%Y', date_col), DATE('now'), IFNULL())."
+        rules = (
+            "- Use standard SQLite functions (e.g. strftime('%Y', date_col), DATE('now'), IFNULL(), COALESCE()).\n"
+            "- Double-quote or backtick column names containing special characters or spaces."
+        )
 
     return dialect_name, rules
 
 
 def get_system_info() -> Dict[str, Any]:
+    """Returns metadata about the active database engine and LLM configuration."""
     target = get_target_engine()
     dialect_name = target.dialect.name.upper()
     active_info = get_active_connection_info()
@@ -84,13 +112,7 @@ def get_system_info() -> Dict[str, Any]:
         "dialect": dialect_name,
         "reference_name": ref_name,
         "active_model": settings.GEMINI_MODEL,
-        "fallback_models": [
-            "gemini-2.5-flash",
-            "gemini-1.5-flash",
-            "gemini-3.5-flash",
-            "gemini-3.7-flash",
-            "gemini-flash-latest"
-        ]
+        "fallback_models": settings.GEMINI_FALLBACK_MODELS
     }
 
 
@@ -109,6 +131,7 @@ Guidelines:
 4. Use ONLY columns and tables that exist in the Schema.
 5. If column sample values are provided in brackets (e.g. [samples: ...]), use exact matching strings.
 6. The query MUST strictly be a read-only SELECT or WITH ... SELECT statement.
+7. Always use meaningful column aliases when aggregating (e.g. SELECT SUM(amount) AS total_amount).
 
 Database Schema with Exact Data Types:
 {schema_text}
@@ -172,14 +195,60 @@ Query Results ({len(sql_result)} rows total):
 Guidelines:
 - Provide a clear, natural, and concise answer directly addressing the question.
 - Highlight key totals, trends, or notable statistics if present.
-- Format numerical amounts and counts nicely for readability."""
+- Format numerical amounts and counts nicely for readability (e.g. $1.2M, 4,500, etc.)."""
 
     response, used_model = generate_content_with_fallback(prompt)
     return response.text.strip(), used_model
 
 
+def suggest_chart_recommendation(question: str, sql_query: str, sql_result: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Analyzes query result structure and suggests the best visual chart type (bar, line, pie, doughnut, or none).
+    """
+    if not sql_result or len(sql_result) <= 1:
+        return {"suggested": False, "chart_type": "none"}
+
+    first_row = sql_result[0]
+    keys = list(first_row.keys())
+    if len(keys) < 2:
+        return {"suggested": False, "chart_type": "none"}
+
+    # Find string/categorical dimension column (x-axis) and numeric measure column (y-axis)
+    str_cols = []
+    num_cols = []
+
+    for k, v in first_row.items():
+        if isinstance(v, (int, float)) and not any(id_k in k.lower() for id_k in ["id", "code", "year"]):
+            num_cols.append(k)
+        elif isinstance(v, str) or any(id_k in k.lower() for id_k in ["year", "month", "date", "status", "type", "category", "zone", "state", "branch", "name"]):
+            str_cols.append(k)
+
+    if str_cols and num_cols:
+        x_key = str_cols[0]
+        y_key = num_cols[0]
+
+        # Determine best chart type
+        q_lower = question.lower()
+        if any(w in q_lower for w in ["trend", "over time", "monthly", "daily", "timeline", "yearly"]) or "date" in x_key.lower() or "year" in x_key.lower() or "month" in x_key.lower():
+            chart_type = "line"
+        elif any(w in q_lower for w in ["share", "proportion", "breakdown", "percentage", "distribution", "ratio"]) and len(sql_result) <= 8:
+            chart_type = "doughnut" if "doughnut" in q_lower else "pie"
+        else:
+            chart_type = "bar"
+
+        return {
+            "suggested": True,
+            "chart_type": chart_type,
+            "x_axis_key": x_key,
+            "y_axis_key": y_key,
+            "label": y_key.replace("_", " ").title()
+        }
+
+    return {"suggested": False, "chart_type": "none"}
+
+
 def clean_sql_output(raw_sql: str) -> str:
-    """Strips markdown code blocks, backticks, and extra whitespace from LLM SQL output."""
+    """Strips markdown code blocks, backticks, and trailing semicolons from LLM SQL output."""
     sql = raw_sql.strip()
     if sql.startswith("```"):
         lines = sql.splitlines()

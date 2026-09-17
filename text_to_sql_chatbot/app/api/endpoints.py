@@ -1,73 +1,304 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from typing import Union, List, Dict, Any
+"""
+REST API Endpoints for Chat, Database Connections, Dataset Ingestion, and Analytics.
+"""
 
-from app.api.schemas import (
-    QuestionRequest, QuestionResponse, ErrorResponse, HealthResponse, SystemInfoResponse,
-    ConnectionCreate, ConnectionUpdate, ConnectionResponse, ConnectionTestRequest, ConnectionTestResponse
-)
+import os
+import shutil
+import logging
+from pathlib import Path
+from typing import List, Dict, Any, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from sqlalchemy.orm import Session
+from sqlalchemy import desc, text
+
+from app.config import settings
 from app.core.database import (
-    get_db, execute_query, get_chat_history, test_db_connection_params,
-    set_active_target_engine, get_active_connection_info, get_target_engine,
-    reset_active_target_engine_to_default
+    get_db,
+    get_target_engine,
+    get_active_connection_info,
+    set_active_target_engine,
+    reset_active_target_engine_to_default,
+    test_db_connection_params,
+    execute_query,
+    get_chat_history
 )
 from app.core.models import Chat, Message, DatabaseConnection
-from app.core.sql_guard import is_safe_query
-from app.services.llm_service import generate_sql, interpret_result, correct_sql_query, get_system_info
+from app.core.db_schema import get_db_schema, invalidate_schema_cache
+from app.core.sql_guard import validate_sql_safety
+from app.core.data_profiler import DatasetProfiler, clean_identifier
+from app.services.llm_service import (
+    generate_sql,
+    correct_sql_query,
+    interpret_result,
+    suggest_chart_recommendation,
+    get_system_info
+)
+from app.api.schemas import (
+    ChatCreate,
+    ChatResponse,
+    AskQuestionRequest,
+    AskQuestionResponse,
+    MessageDetail,
+    ConnectionTestRequest,
+    ConnectionTestResponse,
+    ConnectionCreate,
+    ConnectionUpdate,
+    ConnectionResponse,
+    DatasetProfileRequest,
+    DatasetIngestRequest,
+    DatasetIngestResponse,
+    HealthResponse,
+    ErrorResponse
+)
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+# ======================================================================
+# System & Health Check Endpoints
+# ======================================================================
+
 @router.get("/health", response_model=HealthResponse, tags=["Health"])
-def get_health():
-    return HealthResponse(status="ok")
+@router.get("/health/live", tags=["Health"])
+@router.get("/health/ready", tags=["Health"])
+def health_check(db: Session = Depends(get_db)):
+    """Production health check verifying database and LLM service readiness."""
+    db_status = "healthy"
+    db_error = None
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as e:
+        db_status = "unhealthy"
+        db_error = str(e)
 
+    sys_info = get_system_info()
 
-@router.get("/system-info", response_model=SystemInfoResponse, tags=["Health"])
-def system_info():
-    return get_system_info()
-
-
-# ==========================================
-# Database Connection Management Endpoints
-# ==========================================
-
-def format_connection_response(conn: DatabaseConnection) -> Dict[str, Any]:
     return {
-        "id": conn.id,
-        "reference_name": conn.reference_name,
-        "db_type": conn.db_type,
-        "host": conn.host,
-        "port": conn.port,
-        "database_name": conn.database_name,
-        "username": conn.username,
-        "has_password": bool(conn.password),
-        "extra_params": conn.extra_params,
-        "is_active": bool(conn.is_active),
-        "created_at": conn.created_at,
-        "updated_at": conn.updated_at,
+        "status": "healthy" if db_status == "healthy" else "degraded",
+        "version": settings.VERSION,
+        "database": {
+            "status": db_status,
+            "active_connection": sys_info.get("database"),
+            "dialect": sys_info.get("dialect"),
+            "error": db_error
+        },
+        "llm": {
+            "status": "configured" if bool(settings.GEMINI_API_KEY) else "missing_api_key",
+            "active_model": settings.GEMINI_MODEL,
+            "fallbacks": settings.GEMINI_FALLBACK_MODELS
+        }
     }
 
 
-@router.get("/connections", response_model=List[ConnectionResponse], tags=["Connections"])
-def list_connections(db: Session = Depends(get_db)):
-    """List all saved database connection profiles."""
-    connections = db.query(DatabaseConnection).order_by(DatabaseConnection.created_at.desc()).all()
-    return [format_connection_response(c) for c in connections]
+@router.get("/system/info", tags=["System"])
+def system_information():
+    """Returns active database connection information and model config."""
+    return get_system_info()
 
 
-@router.get("/connections/active", tags=["Connections"])
-def get_active_connection(db: Session = Depends(get_db)):
-    """Get currently active connection information and status."""
-    active = db.query(DatabaseConnection).filter(DatabaseConnection.is_active == True).first()
-    if active:
-        return format_connection_response(active)
-    return get_active_connection_info()
+# ======================================================================
+# Chat & Message Endpoints
+# ======================================================================
 
+@router.post("/chats", response_model=ChatResponse, status_code=status.HTTP_201_CREATED, tags=["Chats"])
+def create_chat_session(payload: Optional[ChatCreate] = None, db: Session = Depends(get_db)):
+    """Creates a new conversation session."""
+    title = payload.title.strip() if (payload and payload.title) else "New Conversation"
+    chat = Chat(title=title)
+    db.add(chat)
+    db.commit()
+    db.refresh(chat)
+    return chat.to_dict()
+
+
+@router.get("/chats", response_model=List[ChatResponse], tags=["Chats"])
+def list_chats(limit: int = 50, db: Session = Depends(get_db)):
+    """Lists recent conversation sessions."""
+    chats = db.query(Chat).order_by(desc(Chat.updated_at)).limit(limit).all()
+    return [c.to_dict() for c in chats]
+
+
+@router.get("/chats/{chat_id}", response_model=ChatResponse, tags=["Chats"])
+def get_chat_session(chat_id: int, db: Session = Depends(get_db)):
+    """Gets details of a specific chat session."""
+    chat = db.query(Chat).filter(Chat.id == chat_id).first()
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+    return chat.to_dict()
+
+
+@router.put("/chats/{chat_id}", response_model=ChatResponse, tags=["Chats"])
+def rename_chat_session(chat_id: int, payload: ChatCreate, db: Session = Depends(get_db)):
+    """Renames an existing chat session."""
+    chat = db.query(Chat).filter(Chat.id == chat_id).first()
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+    if payload.title:
+        chat.title = payload.title.strip()
+        db.commit()
+        db.refresh(chat)
+    return chat.to_dict()
+
+
+@router.delete("/chats/{chat_id}", tags=["Chats"])
+def delete_chat_session(chat_id: int, db: Session = Depends(get_db)):
+    """Deletes a chat session and all associated messages."""
+    chat = db.query(Chat).filter(Chat.id == chat_id).first()
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat session not found")
+    db.delete(chat)
+    db.commit()
+    return {"status": "success", "message": f"Chat #{chat_id} deleted successfully"}
+
+
+@router.get("/chats/{chat_id}/messages", response_model=List[MessageDetail], tags=["Messages"])
+def get_chat_messages(chat_id: int, db: Session = Depends(get_db)):
+    """Returns chronological message history for a chat session."""
+    messages = db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.timestamp.asc()).all()
+    return [m.to_dict() for m in messages]
+
+
+@router.post("/chats/{chat_id}/messages", response_model=AskQuestionResponse, tags=["Query Execution"])
+@router.post("/ask", response_model=AskQuestionResponse, tags=["Query Execution"])
+def ask_question(
+    request: AskQuestionRequest,
+    chat_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Core Text-to-SQL Execution Pipeline:
+    1. Extracts schema context & conversation history.
+    2. Generates dialect-aware SQL via Gemini.
+    3. Validates query safety against SQL Guard.
+    4. Executes query with automated Self-Correction loop on errors.
+    5. Converts tabular results into a natural language executive summary.
+    6. Recommends visual chart configuration.
+    """
+    # Create or retrieve chat session
+    if chat_id is None:
+        chat = Chat(title=request.question[:45] + "..." if len(request.question) > 45 else request.question)
+        db.add(chat)
+        db.commit()
+        db.refresh(chat)
+        chat_id = chat.id
+    else:
+        chat = db.query(Chat).filter(Chat.id == chat_id).first()
+        if not chat:
+            chat = Chat(id=chat_id, title=request.question[:45])
+            db.add(chat)
+            db.commit()
+
+    # Build conversation context for multi-turn reasoning
+    past_messages = get_chat_history(chat_id, db)
+    history_lines = []
+    for msg in past_messages[-5:]:
+        history_lines.append(f"User: {msg.question}")
+        history_lines.append(f"SQL: {msg.sql_query}")
+        history_lines.append(f"Answer: {msg.answer}")
+    history_text = "\n".join(history_lines)
+
+    # 1. Generate SQL Query
+    try:
+        sql, used_model = generate_sql(request.question, history_text)
+    except Exception as e:
+        logger.error(f"SQL Generation Error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"AI SQL generation service error: {str(e)}"
+        )
+
+    # 2. Validate SQL Safety
+    is_safe, violation_reason = validate_sql_safety(sql)
+    if not is_safe:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Security Guardrail Triggered: {violation_reason}"
+        )
+
+    # 3. Execute Query with Self-Correction Loop (up to 2 retries)
+    answer_rows = None
+    exec_time_ms = 0
+    last_exec_error = None
+    max_retries = 2
+
+    for attempt in range(max_retries + 1):
+        try:
+            answer_rows, exec_time_ms = execute_query(sql)
+            break
+        except Exception as exec_err:
+            last_exec_error = str(exec_err)
+            logger.warning(f"[SelfCorrection] Execution attempt {attempt + 1} failed: {last_exec_error}")
+            
+            if attempt < max_retries:
+                try:
+                    sql, used_model = correct_sql_query(request.question, sql, last_exec_error, history_text)
+                    is_safe, violation_reason = validate_sql_safety(sql)
+                    if not is_safe:
+                        break
+                    logger.info(f"[SelfCorrection] Generated corrected SQL (Attempt {attempt + 2}): {sql}")
+                except Exception as corr_err:
+                    logger.error(f"[SelfCorrection] Correction call failed: {corr_err}")
+                    break
+
+    if answer_rows is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Database execution failed: {last_exec_error}"
+        )
+
+    # 4. Generate Natural Language Interpretation
+    try:
+        interpreted_answer, used_model = interpret_result(request.question, answer_rows)
+    except Exception as e:
+        logger.warning(f"Result interpretation warning: {e}")
+        interpreted_answer = f"Found {len(answer_rows)} records matching your query."
+
+    # 5. Chart Recommendation
+    chart_info = suggest_chart_recommendation(request.question, sql, answer_rows)
+
+    # 6. Save Interaction to Database
+    msg = Message(
+        chat_id=chat_id,
+        question=request.question,
+        sql_query=sql,
+        sql_result=answer_rows,
+        answer=interpreted_answer,
+        model_used=used_model,
+        execution_time_ms=exec_time_ms
+    )
+    db.add(msg)
+    
+    # Auto-update chat title if default
+    if chat.title in ("New Conversation", None):
+        chat.title = request.question[:50]
+        
+    db.commit()
+
+    sys_info = get_system_info()
+
+    return {
+        "chat_id": chat_id,
+        "question": request.question,
+        "sql_query": sql,
+        "sql_results": answer_rows,
+        "answer": interpreted_answer,
+        "model_used": used_model,
+        "database_used": sys_info.get("database", "Active Target DB"),
+        "execution_time_ms": exec_time_ms,
+        "row_count": len(answer_rows),
+        "chart": chart_info
+    }
+
+
+# ======================================================================
+# Database Connection Management Endpoints
+# ======================================================================
 
 @router.post("/connections/test", response_model=ConnectionTestResponse, tags=["Connections"])
 def test_connection_endpoint(payload: ConnectionTestRequest):
-    """Test connection credentials and reachability without saving."""
+    """Tests live database reachability and returns table counts and sample tables."""
     try:
         result = test_db_connection_params(
             db_type=payload.db_type,
@@ -83,20 +314,19 @@ def test_connection_endpoint(payload: ConnectionTestRequest):
         return ConnectionTestResponse(status="failed", error=str(e), table_count=0, tables=[])
 
 
-@router.post("/connections", response_model=ConnectionResponse, tags=["Connections"])
+@router.post("/connections", response_model=ConnectionResponse, status_code=status.HTTP_201_CREATED, tags=["Connections"])
 def create_connection(payload: ConnectionCreate, db: Session = Depends(get_db)):
-    """Create and save a new database connection profile."""
-    # Check if reference name already exists
+    """Saves a new database connection profile and optionally activates it."""
     existing = db.query(DatabaseConnection).filter(
         DatabaseConnection.reference_name == payload.reference_name.strip()
     ).first()
     if existing:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"A connection with Reference Name '{payload.reference_name}' already exists. Please choose a unique name."
+            status_code=400,
+            detail=f"Connection name '{payload.reference_name}' is already in use."
         )
 
-    # Optional test verification before saving
+    # Test reachability
     try:
         test_db_connection_params(
             db_type=payload.db_type,
@@ -108,10 +338,7 @@ def create_connection(payload: ConnectionCreate, db: Session = Depends(get_db)):
             extra_params=payload.extra_params
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Database connection test failed: {str(e)}"
-        )
+        raise HTTPException(status_code=400, detail=f"Connection verification failed: {str(e)}")
 
     new_conn = DatabaseConnection(
         reference_name=payload.reference_name.strip(),
@@ -128,437 +355,208 @@ def create_connection(payload: ConnectionCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_conn)
 
-    # If requested to set active immediately or if it's the first connection
     if payload.set_as_active:
         set_active_target_engine(new_conn, db)
 
-    return format_connection_response(new_conn)
+    return new_conn.to_dict()
 
 
-@router.put("/connections/{connection_id}", response_model=ConnectionResponse, tags=["Connections"])
-def update_connection(connection_id: int, payload: ConnectionUpdate, db: Session = Depends(get_db)):
-    """Update an existing database connection profile."""
-    conn = db.query(DatabaseConnection).filter(DatabaseConnection.id == connection_id).first()
-    if not conn:
-        raise HTTPException(status_code=404, detail="Connection not found")
-
-    if payload.reference_name:
-        existing = db.query(DatabaseConnection).filter(
-            DatabaseConnection.reference_name == payload.reference_name.strip(),
-            DatabaseConnection.id != connection_id
-        ).first()
-        if existing:
-            raise HTTPException(status_code=400, detail="Reference name already exists.")
-        conn.reference_name = payload.reference_name.strip()
-
-    if payload.db_type:
-        conn.db_type = payload.db_type.strip().lower()
-    if payload.host is not None:
-        conn.host = payload.host
-    if payload.port is not None:
-        conn.port = payload.port
-    if payload.database_name is not None:
-        conn.database_name = payload.database_name
-    if payload.username is not None:
-        conn.username = payload.username
-    if payload.password is not None and payload.password != "":
-        conn.password = payload.password
-    if payload.extra_params is not None:
-        conn.extra_params = payload.extra_params
-
-    db.commit()
-    db.refresh(conn)
-
-    if conn.is_active:
-        set_active_target_engine(conn, db)
-
-    return format_connection_response(conn)
-
-
-@router.delete("/connections/{connection_id}", tags=["Connections"])
-def delete_connection(connection_id: int, db: Session = Depends(get_db)):
-    """Delete a saved database connection profile."""
-    conn = db.query(DatabaseConnection).filter(DatabaseConnection.id == connection_id).first()
-    if not conn:
-        raise HTTPException(status_code=404, detail="Connection profile not found")
-
-    was_active = conn.is_active
-    ref_name = conn.reference_name
-    db.delete(conn)
-    db.commit()
-
-    if was_active:
-        # Fallback to next available connection or reset to default
-        next_conn = db.query(DatabaseConnection).first()
-        if next_conn:
-            try:
-                set_active_target_engine(next_conn, db)
-            except Exception as e:
-                print(f"[Delete Connection] Failed to activate fallback connection: {e}")
-                reset_active_target_engine_to_default(db)
-        else:
-            reset_active_target_engine_to_default(db)
-
-    return {"status": "deleted", "id": connection_id, "reference_name": ref_name}
+@router.get("/connections", response_model=List[ConnectionResponse], tags=["Connections"])
+def list_connections(db: Session = Depends(get_db)):
+    """Lists all saved database connections with masked credentials."""
+    conns = db.query(DatabaseConnection).order_by(DatabaseConnection.created_at.desc()).all()
+    return [c.to_dict(mask_password=True) for c in conns]
 
 
 @router.post("/connections/{connection_id}/activate", tags=["Connections"])
 def activate_connection(connection_id: int, db: Session = Depends(get_db)):
-    """Activate a database connection profile for the chatbot."""
+    """Switches active database target engine to the selected saved connection."""
     conn = db.query(DatabaseConnection).filter(DatabaseConnection.id == connection_id).first()
     if not conn:
         raise HTTPException(status_code=404, detail="Connection not found")
 
-    try:
-        active_info = set_active_target_engine(conn, db)
-        return {
-            "status": "activated",
-            "connection": format_connection_response(conn),
-            "system_info": get_system_info()
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to connect to database: {str(e)}"
-        )
+    info = set_active_target_engine(conn, db)
+    return {"status": "success", "active_connection": info}
 
 
-# ==========================================
-# Chatbot Question & Inference Endpoint
-# ==========================================
+@router.post("/connections/reset-default", tags=["Connections"])
+def reset_to_default_database(db: Session = Depends(get_db)):
+    """Resets the active target database engine to the default SQLite app.db."""
+    info = reset_active_target_engine_to_default(db)
+    return {"status": "success", "active_connection": info}
 
-@router.post(
-    "/ask",
-    response_model=Union[QuestionResponse, ErrorResponse],
-    responses={
-        200: {"model": QuestionResponse},
-        400: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-    tags=["Chatbot"]
-)
-def ask_question(request: QuestionRequest, db: Session = Depends(get_db)):
-    chat = None
-    if request.chat_id is not None and request.chat_id > 0:
-        chat = db.query(Chat).filter(Chat.id == request.chat_id).first()
 
-    if chat is None:
-        new_chat = Chat()
-        db.add(new_chat)
-        db.commit()
-        db.refresh(new_chat)
-        chat_id = new_chat.id
-    else:
-        chat_id = chat.id
+@router.delete("/connections/{connection_id}", tags=["Connections"])
+def delete_connection(connection_id: int, db: Session = Depends(get_db)):
+    """Deletes a saved database connection profile."""
+    conn = db.query(DatabaseConnection).filter(DatabaseConnection.id == connection_id).first()
+    if not conn:
+        raise HTTPException(status_code=404, detail="Connection not found")
 
-    history = get_chat_history(chat_id, db)
-    history_text = "\n".join(
-        f"Q: {m.question}\nA: {m.answer}" for m in history
-    )
+    if conn.is_active:
+        reset_active_target_engine_to_default(db)
 
-    used_model = "Gemini AI"
-    try:
-        sql, sql_model = generate_sql(request.question, history_text)
-        used_model = sql_model
-    except Exception as e:
-        print(f"[API Error] generate_sql failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return ErrorResponse(error=f"The AI service is temporarily unavailable: {str(e)}")
-
-    if not is_safe_query(sql):
-        return ErrorResponse(
-            error="This chatbot can only retrieve information, not modify or delete data. Please rephrase your question as a request to view or analyze data."
-        )
-
-    # Attempt query execution with LLM Self-Correction Loop (up to 2 retries)
-    answer = None
-    last_error = None
-    max_retries = 2
-
-    for attempt in range(max_retries + 1):
-        try:
-            answer = execute_query(sql)
-            break
-        except Exception as exec_err:
-            last_error = str(exec_err)
-            print(f"[SelfCorrection] Execution attempt {attempt + 1} failed: {last_error}")
-            if attempt < max_retries:
-                try:
-                    sql, corr_model = correct_sql_query(request.question, sql, last_error, history_text)
-                    used_model = corr_model
-                    if not is_safe_query(sql):
-                        break
-                    print(f"[SelfCorrection] Generated corrected SQL (Attempt {attempt + 2}): {sql}")
-                except Exception as corr_err:
-                    print(f"[SelfCorrection] Correction failed: {corr_err}")
-                    break
-
-    if answer is None:
-        return ErrorResponse(error=f"Error executing generated SQL query: {last_error}")
-
-    try:
-        interpreted_answer, interp_model = interpret_result(request.question, answer)
-        used_model = interp_model
-    except Exception as e:
-        print(f"[API Error] interpret_result failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return ErrorResponse(error=f"The AI service is temporarily unavailable: {str(e)}")
-
-    message = Message(
-        chat_id=chat_id,
-        question=request.question,
-        sql_query=sql,
-        sql_result=answer,
-        answer=interpreted_answer
-    )
-    db.add(message)
+    db.delete(conn)
     db.commit()
+    return {"status": "success", "message": "Connection deleted"}
 
-    sys_info = get_system_info()
+
+# ======================================================================
+# Dataset Upload & Profiling Endpoints
+# ======================================================================
+
+@router.post("/datasets/upload", tags=["Datasets"])
+async def upload_dataset_file(file: UploadFile = File(...)):
+    """Uploads a dataset file (Excel, CSV, TSV, JSON) to the upload repository."""
+    allowed_extensions = {".xlsx", ".xls", ".xlsm", ".csv", ".tsv", ".txt", ".json", ".jsonl"}
+    file_ext = Path(file.filename).suffix.lower()
+    
+    if file_ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{file_ext}'. Allowed types: {', '.join(sorted(allowed_extensions))}"
+        )
+
+    dest_path = Path(settings.UPLOAD_DIR) / file.filename
+    with open(dest_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
 
     return {
-        "Chat Id": chat_id,
-        "Question": request.question,
-        "SQL Query": sql,
-        "SQL Results": answer,
-        "Answer": interpreted_answer,
-        "Model Used": used_model,
-        "Database Used": sys_info.get("database", "Active Database")
+        "status": "success",
+        "file_name": file.filename,
+        "file_size_bytes": os.path.getsize(dest_path),
+        "file_path": str(dest_path)
     }
 
 
-# ==========================================
-# Dashboard Analytics Endpoints
-# ==========================================
+@router.get("/datasets", tags=["Datasets"])
+def list_available_datasets():
+    """Lists all available files in upload and data directories."""
+    files = []
+    scan_dirs = [Path(settings.UPLOAD_DIR), Path("./data"), Path("./text_to_sql_chatbot/data")]
+    seen_names = set()
 
-@router.get("/dashboard/metrics", tags=["Dashboard"])
-def get_dashboard_metrics(db: Session = Depends(get_db)):
-    """Computes and returns aggregate metrics for the Collections & Loan Dashboard."""
-    from sqlalchemy import inspect, text
-    from app.core.database import get_target_engine, get_active_connection_info
+    for d in scan_dirs:
+        if d.exists():
+            for f in d.iterdir():
+                if f.is_file() and f.suffix.lower() in (".xlsx", ".xls", ".csv", ".tsv", ".json") and f.name not in seen_names:
+                    seen_names.add(f.name)
+                    files.append({
+                        "file_name": f.name,
+                        "file_size_bytes": f.stat().st_size,
+                        "file_path": str(f.resolve()),
+                        "directory": str(d)
+                    })
 
-    engine = get_target_engine()
-    active_info = get_active_connection_info()
-    
-    response = {
-        "active_database": active_info.get("reference_name", "Default Database"),
-        "db_type": active_info.get("db_type", "sqlite"),
-        "sidebar": {
-            "total_dues": 0.0,
-            "emi_dues": 0.0,
-            "other_charges": 0.0,
-            "active_users": 0,
-            "total_users": 0,
-        },
-        "top_metrics": {
-            "total_cases": 0,
-            "unallocated_cases": 0,
-            "ptp_planned": 0.0,
-            "ptp_growth": "+0%",
-            "collections": 0.0,
-            "collections_growth": "+0%",
-            "resolution": 0.0,
-            "resolution_growth": "+0%"
-        },
-        "ribbon": {
-            "planned_collections": 0.0,
-            "unplanned_collections": 0.0,
-            "total_collections": 0.0
-        },
-        "collection_analytics": {
-            "total_amount": 0.0,
-            "total_collections": 0,
-            "total_unique_cases": 0,
-            "avg_per_case": 0.0,
-            "breakdown": [
-                {"name": "Full Payments", "key": "full", "color": "#10b981", "amount": 0.0, "count": 0, "percentage": 0.0},
-                {"name": "Part Payments", "key": "part", "color": "#3b82f6", "amount": 0.0, "count": 0, "percentage": 0.0},
-                {"name": "Settlement Payments", "key": "settlement", "color": "#8b5cf6", "amount": 0.0, "count": 0, "percentage": 0.0},
-                {"name": "Foreclosure Payments", "key": "foreclosure", "color": "#f59e0b", "amount": 0.0, "count": 0, "percentage": 0.0}
-            ]
-        },
-        "bucket_movement": {
-            "has_data": False,
-            "items": []
-        },
-        "analytics": {
-            "by_state": [],
-            "by_mode": [],
-            "by_bucket": []
+    return {"datasets": files}
+
+
+@router.post("/datasets/profile", tags=["Datasets"])
+def profile_dataset_endpoint(payload: DatasetProfileRequest):
+    """Profiles a dataset and returns column semantic types, statistical metrics, and LLM schema markdown."""
+    file_path = None
+    for search_dir in [Path(settings.UPLOAD_DIR), Path("./data"), Path("./text_to_sql_chatbot/data"), Path(".")]:
+        candidate = search_dir / payload.file_name
+        if candidate.exists():
+            file_path = str(candidate.resolve())
+            break
+
+    if not file_path:
+        raise HTTPException(status_code=404, detail=f"File '{payload.file_name}' not found.")
+
+    profiler = DatasetProfiler(sample_size=payload.sample_size)
+    try:
+        profiles = profiler.profile_file(file_path, sheet_name=payload.sheet_name)
+        markdown_blocks = [profiler.to_llm_markdown(p) for p in profiles]
+        ddl_blocks = [profiler.to_sql_ddl(p) for p in profiles]
+        
+        return {
+            "status": "success",
+            "file_name": payload.file_name,
+            "table_count": len(profiles),
+            "tables": [p.to_dict() for p in profiles],
+            "llm_markdown": "\n\n---\n\n".join(markdown_blocks),
+            "sql_ddl": "\n\n".join(ddl_blocks)
         }
-    }
+    except Exception as e:
+        logger.error(f"Dataset profiling error: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=f"Profiling failed: {str(e)}")
+
+
+@router.post("/datasets/ingest", response_model=DatasetIngestResponse, tags=["Datasets"])
+def ingest_dataset_endpoint(payload: DatasetIngestRequest):
+    """Ingests a dataset file into the active database engine as a clean SQL table."""
+    file_path = None
+    for search_dir in [Path(settings.UPLOAD_DIR), Path("./data"), Path("./text_to_sql_chatbot/data"), Path(".")]:
+        candidate = search_dir / payload.file_name
+        if candidate.exists():
+            file_path = str(candidate.resolve())
+            break
+
+    if not file_path:
+        raise HTTPException(status_code=404, detail=f"File '{payload.file_name}' not found.")
+
+    profiler = DatasetProfiler()
+    target_engine = get_target_engine()
 
     try:
-        inspector = inspect(engine)
-        user_tables = inspector.get_table_names()
+        import pandas as pd
+        profiles = profiler.profile_file(file_path, sheet_name=payload.sheet_name)
+        total_rows = 0
+        final_table_name = ""
 
-        with engine.connect() as conn:
-            # 1. Query SOA Data if available
-            soa_table = next((t for t in user_tables if t.lower() in ["soa_data_v2", "soa_data", "soa"]), None)
-            if soa_table:
-                soa_query = text(f"""
-                    SELECT 
-                        COALESCE(COUNT(*), 0) as total_cases,
-                        COALESCE(SUM(CAST(total_dues AS NUMERIC)), 0) as total_dues,
-                        COALESCE(SUM(CAST(emi_pemi_dues AS NUMERIC)), 0) as emi_dues,
-                        COALESCE(SUM(CAST(charges_payable AS NUMERIC)), 0) as other_charges,
-                        COALESCE(COUNT(DISTINCT app_user_id), 0) as total_users,
-                        COALESCE(COUNT(CASE WHEN allocation IS NULL OR allocation = '' THEN 1 END), 0) as unallocated
-                    FROM {soa_table}
-                """)
-                soa_res = conn.execute(soa_query).fetchone()
-                if soa_res:
-                    response["sidebar"]["total_dues"] = float(soa_res[1] or 0.0)
-                    response["sidebar"]["emi_dues"] = float(soa_res[2] or 0.0)
-                    response["sidebar"]["other_charges"] = float(soa_res[3] or 0.0)
-                    response["sidebar"]["total_users"] = int(soa_res[4] or 0)
-                    response["sidebar"]["active_users"] = min(int(soa_res[4] or 0), max(1, int((soa_res[4] or 0) * 0.42)))
-                    
-                    response["top_metrics"]["total_cases"] = int(soa_res[0] or 0)
-                    response["top_metrics"]["unallocated_cases"] = int(soa_res[5] or 0)
+        for prof in profiles:
+            tname = clean_identifier(payload.table_name) if payload.table_name else prof.clean_table_name
+            final_table_name = tname
 
-            # 2. Query Collection Data if available
-            coll_table = next((t for t in user_tables if t.lower() in ["collection_data_v2", "collection_data", "collections"]), None)
-            if coll_table:
-                coll_query = text(f"""
-                    SELECT 
-                        COALESCE(COUNT(*), 0) as total_count,
-                        COALESCE(SUM(CAST(total_amount_collected AS NUMERIC)), 0) as total_collected,
-                        COALESCE(COUNT(DISTINCT loan_number), 0) as unique_cases,
-                        COALESCE(AVG(CAST(total_amount_collected AS NUMERIC)), 0) as avg_amount
-                    FROM {coll_table}
-                """)
-                coll_res = conn.execute(coll_query).fetchone()
-                if coll_res:
-                    tot_count = int(coll_res[0] or 0)
-                    tot_amount = float(coll_res[1] or 0.0)
-                    uniq_cases = int(coll_res[2] or 0)
-                    avg_amt = float(coll_res[3] or 0.0)
+            if file_path.endswith((".xlsx", ".xls", ".xlsm")):
+                df = pd.read_excel(file_path, sheet_name=prof.sheet_name)
+            else:
+                df = profiler._read_csv_robust(file_path)
 
-                    response["top_metrics"]["collections"] = tot_amount
-                    response["top_metrics"]["ptp_planned"] = tot_amount * 1.15
-                    
-                    if response["top_metrics"]["total_cases"] > 0:
-                        res_pct = round((uniq_cases / response["top_metrics"]["total_cases"]) * 100, 1)
-                        response["top_metrics"]["resolution"] = res_pct
+            # Map column names to clean SQL identifiers
+            col_map = {col.name: col.clean_name for col in prof.columns}
+            df = df.rename(columns=col_map)
 
-                    planned = tot_amount * 0.65
-                    unplanned = tot_amount * 0.35
-                    response["ribbon"]["planned_collections"] = planned
-                    response["ribbon"]["unplanned_collections"] = unplanned
-                    response["ribbon"]["total_collections"] = tot_amount
+            # Ingest into active target database
+            df.to_sql(tname, target_engine, if_exists="replace", index=False)
+            total_rows += len(df)
 
-                    response["collection_analytics"]["total_amount"] = tot_amount
-                    response["collection_analytics"]["total_collections"] = tot_count
-                    response["collection_analytics"]["total_unique_cases"] = uniq_cases
-                    response["collection_analytics"]["avg_per_case"] = avg_amt
+        # Invalidate schema cache so the new table is immediately queryable
+        invalidate_schema_cache()
 
-                # Payment Type Breakdown
-                try:
-                    pt_query = text(f"""
-                        SELECT 
-                            LOWER(TRIM(COALESCE(payment_type, 'other'))) as ptype,
-                            COUNT(*) as cnt,
-                            SUM(CAST(total_amount_collected AS NUMERIC)) as amt
-                        FROM {coll_table}
-                        GROUP BY LOWER(TRIM(COALESCE(payment_type, 'other')))
-                    """)
-                    pt_rows = conn.execute(pt_query).fetchall()
-                    tot_amt = response["collection_analytics"]["total_amount"] or 1.0
-
-                    breakdown_map = {
-                        "full": {"name": "Full Payments", "key": "full", "color": "#10b981", "amount": 0.0, "count": 0, "percentage": 0.0},
-                        "part": {"name": "Part Payments", "key": "part", "color": "#3b82f6", "amount": 0.0, "count": 0, "percentage": 0.0},
-                        "settlement": {"name": "Settlement Payments", "key": "settlement", "color": "#8b5cf6", "amount": 0.0, "count": 0, "percentage": 0.0},
-                        "foreclosure": {"name": "Foreclosure Payments", "key": "foreclosure", "color": "#f59e0b", "amount": 0.0, "count": 0, "percentage": 0.0}
-                    }
-
-                    for row in pt_rows:
-                        ptype, cnt, amt = row[0], int(row[1] or 0), float(row[2] or 0.0)
-                        if "full" in ptype:
-                            k = "full"
-                        elif "part" in ptype:
-                            k = "part"
-                        elif "settle" in ptype:
-                            k = "settlement"
-                        elif "foreclose" in ptype or "fcl" in ptype:
-                            k = "foreclosure"
-                        else:
-                            k = "part"
-                        
-                        breakdown_map[k]["amount"] += amt
-                        breakdown_map[k]["count"] += cnt
-
-                    for k, item in breakdown_map.items():
-                        if tot_amt > 0:
-                            item["percentage"] = round((item["amount"] / tot_amt) * 100, 1)
-
-                    response["collection_analytics"]["breakdown"] = list(breakdown_map.values())
-                except Exception as p_err:
-                    print(f"[Dashboard] Payment breakdown query error: {p_err}")
-
-                # State distribution for Analytics tab
-                try:
-                    state_query = text(f"""
-                        SELECT state, COUNT(*) as cnt, SUM(CAST(total_amount_collected AS NUMERIC)) as total
-                        FROM {coll_table}
-                        WHERE state IS NOT NULL AND TRIM(state) != ''
-                        GROUP BY state
-                        ORDER BY total DESC
-                        LIMIT 6
-                    """)
-                    state_rows = conn.execute(state_query).fetchall()
-                    response["analytics"]["by_state"] = [
-                        {"state": r[0], "count": int(r[1]), "amount": float(r[2] or 0)} for r in state_rows
-                    ]
-                except Exception as s_err:
-                    print(f"[Dashboard] State query error: {s_err}")
-
-                # Mode distribution for Analytics tab
-                try:
-                    mode_query = text(f"""
-                        SELECT instrument_mode, COUNT(*) as cnt, SUM(CAST(total_amount_collected AS NUMERIC)) as total
-                        FROM {coll_table}
-                        WHERE instrument_mode IS NOT NULL AND TRIM(instrument_mode) != ''
-                        GROUP BY instrument_mode
-                        ORDER BY total DESC
-                    """)
-                    mode_rows = conn.execute(mode_query).fetchall()
-                    response["analytics"]["by_mode"] = [
-                        {"mode": r[0], "count": int(r[1]), "amount": float(r[2] or 0)} for r in mode_rows
-                    ]
-                except Exception as m_err:
-                    print(f"[Dashboard] Mode query error: {m_err}")
-
-            # 3. Bucket data from SOA
-            if soa_table:
-                try:
-                    bkt_query = text(f"""
-                        SELECT bucket, COUNT(*) as cnt, SUM(CAST(total_dues AS NUMERIC)) as dues
-                        FROM {soa_table}
-                        WHERE bucket IS NOT NULL AND TRIM(bucket) != ''
-                        GROUP BY bucket
-                        ORDER BY cnt DESC
-                        LIMIT 8
-                    """)
-                    bkt_rows = conn.execute(bkt_query).fetchall()
-                    response["analytics"]["by_bucket"] = [
-                        {"bucket": f"Bucket {r[0]}", "cases": int(r[1]), "dues": float(r[2] or 0)} for r in bkt_rows
-                    ]
-                    if bkt_rows:
-                        response["bucket_movement"]["has_data"] = True
-                        response["bucket_movement"]["items"] = [
-                            {"bucket": f"Bucket {r[0]}", "cases": int(r[1]), "dues": float(r[2] or 0)} for r in bkt_rows
-                        ]
-                except Exception as b_err:
-                    print(f"[Dashboard] Bucket query error: {b_err}")
+        return DatasetIngestResponse(
+            status="success",
+            table_name=final_table_name,
+            rows_ingested=total_rows,
+            columns_count=len(df.columns),
+            message=f"Successfully ingested {total_rows:,} rows into table '{final_table_name}'."
+        )
 
     except Exception as e:
-        print(f"[Dashboard API Error] {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Dataset ingestion error: {e}", exc_info=True)
+        raise HTTPException(status_code=400, detail=f"Ingestion failed: {str(e)}")
 
-    return response
 
+# ======================================================================
+# Schema Inspection Endpoints
+# ======================================================================
+
+@router.get("/schema", tags=["Schema"])
+def get_current_schema(refresh: bool = False):
+    """Returns the reflected SQL schema of the active database engine."""
+    schema_text = get_db_schema(force_refresh=refresh)
+    sys_info = get_system_info()
+    return {
+        "database": sys_info.get("database"),
+        "dialect": sys_info.get("dialect"),
+        "schema": schema_text
+    }
+
+
+@router.post("/schema/refresh", tags=["Schema"])
+def refresh_schema():
+    """Forces an immediate cache invalidation and schema re-reflection."""
+    invalidate_schema_cache()
+    schema_text = get_db_schema(force_refresh=True)
+    return {"status": "success", "schema": schema_text}

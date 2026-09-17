@@ -1,53 +1,97 @@
-from datetime import datetime
-from typing import Optional, List, Dict, Any
+"""
+Pydantic Request and Response Schemas for the REST API.
+"""
+
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 
 
-class QuestionRequest(BaseModel):
-    question: str = Field(..., description="Natural language question to query database", example="How many active customers are in Pune?")
-    chat_id: Optional[int] = Field(None, description="Optional conversation/chat ID for context history", example=1)
+# ----------------------------------------------------------------------
+# Chat & Message Schemas
+# ----------------------------------------------------------------------
+
+class ChatCreate(BaseModel):
+    title: Optional[str] = Field(default=None, description="Optional title for the chat session")
 
 
-class QuestionResponse(BaseModel):
-    chat_id: int = Field(..., alias="Chat Id")
-    question: str = Field(..., alias="Question")
-    sql_query: str = Field(..., alias="SQL Query")
-    sql_results: List[Dict[str, Any]] = Field(..., alias="SQL Results")
-    answer: str = Field(..., alias="Answer")
-    model_used: Optional[str] = Field(None, alias="Model Used")
-    database_used: Optional[str] = Field(None, alias="Database Used")
-
-    class Config:
-        populate_by_name = True
+class ChatResponse(BaseModel):
+    id: int
+    title: str
+    created_at: Optional[str]
+    updated_at: Optional[str]
+    message_count: int = 0
 
 
-class SystemInfoResponse(BaseModel):
-    database: str
-    dialect: str
-    reference_name: Optional[str] = "Default Database"
-    active_model: str
-    fallback_models: List[str]
+class AskQuestionRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=2000, description="Natural language question to query against the active database")
 
 
-class ErrorResponse(BaseModel):
-    error: str
+class ChartSuggestion(BaseModel):
+    suggested: bool = False
+    chart_type: str = "none"
+    x_axis_key: Optional[str] = None
+    y_axis_key: Optional[str] = None
+    label: Optional[str] = None
 
 
-class HealthResponse(BaseModel):
-    status: str = "ok"
+class AskQuestionResponse(BaseModel):
+    chat_id: int
+    question: str
+    sql_query: str
+    sql_results: List[Dict[str, Any]]
+    answer: str
+    model_used: Optional[str] = None
+    database_used: Optional[str] = None
+    execution_time_ms: Optional[int] = 0
+    row_count: int = 0
+    chart: Optional[ChartSuggestion] = None
 
 
-# Database Connection Schemas
+class MessageDetail(BaseModel):
+    id: int
+    chat_id: int
+    question: str
+    sql_query: str
+    sql_result: Optional[List[Dict[str, Any]]] = None
+    answer: str
+    model_used: Optional[str] = None
+    execution_time_ms: Optional[int] = None
+    timestamp: Optional[str] = None
+
+
+# ----------------------------------------------------------------------
+# Connection Management Schemas
+# ----------------------------------------------------------------------
+
+class ConnectionTestRequest(BaseModel):
+    db_type: str = Field("postgresql", description="Database dialect: postgresql, mysql, or sqlite")
+    host: Optional[str] = Field(default="localhost")
+    port: Optional[int] = Field(default=None)
+    database_name: Optional[str] = Field(default=None)
+    username: Optional[str] = Field(default=None)
+    password: Optional[str] = Field(default=None)
+    extra_params: Optional[str] = Field(default=None)
+
+
+class ConnectionTestResponse(BaseModel):
+    status: str
+    latency_ms: Optional[float] = None
+    dialect: Optional[str] = None
+    table_count: int = 0
+    tables: List[str] = []
+    error: Optional[str] = None
+
+
 class ConnectionCreate(BaseModel):
-    reference_name: str = Field(..., description="Unique alias name for this database connection", example="Production Analytics DB")
-    db_type: str = Field(..., description="Database dialect: postgresql, mysql, or sqlite", example="postgresql")
-    host: Optional[str] = Field(None, example="localhost")
-    port: Optional[int] = Field(None, example=5432)
-    database_name: Optional[str] = Field(None, example="text_to_sql_db")
-    username: Optional[str] = Field(None, example="postgres")
-    password: Optional[str] = Field(None, example="secret123")
-    extra_params: Optional[str] = Field(None, description="Custom SQLite filepath or connection options")
-    set_as_active: Optional[bool] = Field(False, description="Immediately activate this connection after saving")
+    reference_name: str = Field(..., min_length=1, max_length=100)
+    db_type: str = Field("postgresql")
+    host: Optional[str] = Field(default="localhost")
+    port: Optional[int] = Field(default=None)
+    database_name: Optional[str] = Field(default=None)
+    username: Optional[str] = Field(default=None)
+    password: Optional[str] = Field(default=None)
+    extra_params: Optional[str] = Field(default=None)
+    set_as_active: bool = Field(default=False)
 
 
 class ConnectionUpdate(BaseModel):
@@ -59,41 +103,59 @@ class ConnectionUpdate(BaseModel):
     username: Optional[str] = None
     password: Optional[str] = None
     extra_params: Optional[str] = None
-    is_active: Optional[bool] = None
 
 
 class ConnectionResponse(BaseModel):
     id: int
     reference_name: str
     db_type: str
-    host: Optional[str] = None
+    host: Optional[str] = "localhost"
     port: Optional[int] = None
     database_name: Optional[str] = None
     username: Optional[str] = None
-    has_password: bool = False
+    password: Optional[str] = None
     extra_params: Optional[str] = None
     is_active: bool = False
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
 
-class ConnectionTestRequest(BaseModel):
-    db_type: str = Field(..., example="postgresql")
-    host: Optional[str] = Field(None, example="localhost")
-    port: Optional[int] = Field(None, example=5432)
-    database_name: Optional[str] = Field(None, example="text_to_sql_db")
-    username: Optional[str] = Field(None, example="postgres")
-    password: Optional[str] = Field(None, example="secret123")
-    extra_params: Optional[str] = None
+# ----------------------------------------------------------------------
+# Dataset Upload & Profiler Schemas
+# ----------------------------------------------------------------------
+
+class DatasetProfileRequest(BaseModel):
+    file_name: str
+    sheet_name: Optional[str] = None
+    sample_size: Optional[int] = None
 
 
-class ConnectionTestResponse(BaseModel):
+class DatasetIngestRequest(BaseModel):
+    file_name: str
+    table_name: Optional[str] = None
+    sheet_name: Optional[str] = None
+
+
+class DatasetIngestResponse(BaseModel):
     status: str
-    latency_ms: Optional[float] = None
-    dialect: Optional[str] = None
-    table_count: Optional[int] = None
-    tables: Optional[List[str]] = []
-    error: Optional[str] = None
+    table_name: str
+    rows_ingested: int
+    columns_count: int
+    message: str
+
+
+# ----------------------------------------------------------------------
+# System & Health Schemas
+# ----------------------------------------------------------------------
+
+class HealthResponse(BaseModel):
+    status: str
+    version: str
+    database: Dict[str, Any]
+    llm: Dict[str, Any]
+
+
+class ErrorResponse(BaseModel):
+    error: str
+    code: Optional[str] = "INTERNAL_ERROR"
+    detail: Optional[str] = None

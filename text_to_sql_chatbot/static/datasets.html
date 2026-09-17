@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dataset Ingestion & Profiler | Text-to-SQL Chatbot</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📁</text></svg>">
+  <style>
+    .datasets-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .upload-zone {
+      border: 2px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 24px;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.05);
+    }
+    .upload-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .file-card {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .file-title {
+      font-weight: 600;
+      font-size: 15px;
+      word-break: break-all;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .file-meta {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .profile-section {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 24px;
+    }
+    .profile-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 13px;
+    }
+    .profile-table th, .profile-table td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .profile-table th {
+      background: rgba(0, 0, 0, 0.2);
+      font-weight: 600;
+      color: #94a3b8;
+    }
+    .type-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .type-date { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .type-currency { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .type-identifier { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .type-categorical { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
+    .type-boolean { background: rgba(236, 72, 153, 0.2); color: #f472b6; }
+    .type-coordinate { background: rgba(20, 184, 166, 0.2); color: #2dd4bf; }
+    .type-empty { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
+    .ingest-form {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 16px;
+      background: rgba(0,0,0,0.15);
+      padding: 16px;
+      border-radius: 8px;
+    }
+    .ingest-form input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #0f172a;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-title">Text-to-SQL Platform</div>
+    </div>
+    <div class="nav-links">
+      <a href="/dashboard.html" class="nav-btn">
+        <span>📊</span> Dashboard
+      </a>
+      <a href="/" class="nav-btn">
+        <span>💬</span> AI Chatbot
+      </a>
+      <a href="/datasets.html" class="nav-btn active">
+        <span>📁</span> Dataset Ingestion
+      </a>
+      <a href="/connections.html" class="nav-btn">
+        <span>⚙️</span> Database Connections
+      </a>
+    </div>
+    <div class="header-meta">
+      <span class="badge badge-status">
+        <span class="status-dot"></span> Online
+      </span>
+      <span class="badge" id="modelBadge">Gemini 2.5 Flash</span>
+    </div>
+  </header>
+
+  <!-- Container -->
+  <div class="datasets-container">
+    
+    <div style="margin-bottom: 24px;">
+      <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 8px;">📁 Dataset Ingestion & Semantic Profiler</h1>
+      <p style="color: #94a3b8; font-size: 14px;">Upload Excel or CSV files to automatically infer column data types (Dates, Currencies, Codes, Enums), profile statistics, and ingest as clean database tables.</p>
+    </div>
+
+    <!-- Drag & Drop Upload Zone -->
+    <div class="upload-zone" id="dropZone">
+      <div class="upload-icon">📤</div>
+      <div style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Drag & drop your dataset here or click to browse</div>
+      <div style="color: #64748b; font-size: 13px;">Supports .xlsx, .xls, .csv, .tsv, .json (Up to 100MB)</div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm,.csv,.tsv,.json,.jsonl" style="display: none;">
+    </div>
+
+    <!-- Available Files -->
+    <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">Available Datasets</h2>
+    <div class="file-grid" id="fileGrid">
+      <div style="color: #64748b; grid-column: 1/-1;">Loading datasets...</div>
+    </div>
+
+    <!-- Profile Viewer Section -->
+    <div class="profile-section" id="profileSection" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div>
+          <h2 style="font-size: 20px; font-weight: 600;" id="profileTitle">Dataset Profile</h2>
+          <div style="color: #94a3b8; font-size: 13px;" id="profileSubtitle"></div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="nav-btn" id="btnShowMarkdown" style="cursor: pointer;">📋 View LLM Schema</button>
+          <button class="nav-btn" id="btnShowDdl" style="cursor: pointer;">💾 View SQL DDL</button>
+        </div>
+      </div>
+
+      <!-- Ingest Action Box -->
+      <div class="ingest-form">
+        <label style="font-weight: 600; font-size: 14px; white-space: nowrap;">Target Table Name:</label>
+        <input type="text" id="targetTableName" placeholder="e.g. collection_mis_report">
+        <button class="nav-btn active" id="btnIngest" style="cursor: pointer; padding: 10px 20px; font-weight: 600;">
+          ⚡ Ingest to Database
+        </button>
+      </div>
+
+      <!-- Column Table -->
+      <div style="overflow-x: auto; margin-top: 20px;">
+        <table class="profile-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Column Name</th>
+              <th>Inferred Type</th>
+              <th>SQL Type</th>
+              <th>Role</th>
+              <th>Null %</th>
+              <th>Sample / Distinct Values</th>
+              <th>LLM Guidance Note</th>
+            </tr>
+          </thead>
+          <tbody id="profileTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/datasets.js"></script>
+</body>
+</html>

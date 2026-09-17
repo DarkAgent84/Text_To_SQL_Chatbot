@@ -1,24 +1,34 @@
-# Enterprise Text-to-SQL Chatbot
+# Enterprise Text-to-SQL AI Chatbot & Data Intelligence Platform
 
-An enterprise-ready, modular FastAPI application that dynamically inspects relational database schemas (PostgreSQL, MySQL, SQLite) with **exact data types**, generates accurate SQL queries using **Google Gemini AI**, executes them safely with read-only guardrails, and provides plain-English executive summaries.
+An enterprise-ready, production-hardened FastAPI platform that dynamically inspects relational database schemas (PostgreSQL, MySQL, SQLite) and tabular datasets (Excel, CSV, TSV, JSON), infers exact semantic data types (`DATE`, `CURRENCY`, `IDENTIFIER`, `CATEGORICAL`), generates accurate SQL queries using **Google Gemini AI**, executes them safely with AST read-only guardrails, and provides plain-English executive summaries and interactive visual charts.
 
 ---
 
-## 🚀 Key Features
+## 🚀 Key Production Features
 
-- **Multi-Database Support**: Connect to **PostgreSQL**, **MySQL**, or **SQLite** databases dynamically.
-- **Dynamic Schema Reflection**: Inspects connected databases in real-time, extracting exact table names, precise column data types (`VARCHAR`, `INTEGER`, `DECIMAL`, `DATE`, `TIMESTAMP`, etc.), Primary Keys, and Foreign Keys.
+- **Multi-Database Dynamic Switching**: Connect to **PostgreSQL**, **MySQL**, or **SQLite** databases dynamically at runtime without restarting the server.
+- **Dataset Ingestion & Semantic Profiler (`/datasets.html` & `data_profiler.py`)**:
+  - Drag & Drop upload for `.xlsx`, `.xls`, `.csv`, `.tsv`, and `.json` datasets.
+  - Deep semantic type inference for `DATE` (`DD-MM-YYYY`), `CURRENCY` (`DECIMAL(15,2)`), `IDENTIFIER` (LAN, PAN, Telecaller ID), `CATEGORICAL` discrete enums, and `COORDINATE` lat/lon.
+  - Generates LLM Markdown schema context and SQL DDL statements.
+  - One-click ingestion into database tables with normalized SQL column names.
+- **AI Text-to-SQL Engine with Self-Correction**:
+  - Dialect-aware prompts (`strftime` for SQLite, `EXTRACT/ILIKE` for PostgreSQL, `DATE_FORMAT` for MySQL).
+  - Automated Multi-Model Fallback Ladder (`gemini-2.5-flash`, `gemini-3.5-flash`, `gemini-3.6-flash`, etc.).
+  - Self-Correction loop that automatically fixes execution syntax errors.
+  - Natural language executive summary of query results.
+  - Chart type recommendation engine (Bar, Line, Pie, Doughnut).
+- **Security & SQL Guard**:
+  - AST-level validation blocking destructive statements (`DROP`, `DELETE`, `UPDATE`, `INSERT`, `TRUNCATE`, `ALTER`, `GRANT`).
+  - Blocks stacked / chained injection attacks (`;`).
+  - Strips comments to prevent injection hiding.
 - **Database Connection Manager Web UI (`/connections.html`)**:
-  - Configure connections with a unique Reference Name (Alias).
-  - ⚡ **Live Test Connection**: Tests credentials, measures latency, and discovers preview tables.
+  - Test credentials and latency before saving.
   - Save, edit, delete, and switch active databases with a single click.
-- **AI Chatbot Dashboard (`/`)**:
-  - Natural language questions to SQL generation.
-  - Live **Active Database Switcher Dropdown** in the header.
-  - LLM Self-Correction Loop for automatic query error recovery.
-  - Visual SQL query drawer and tabular execution results.
-  - Plain-English business summaries.
-- **SQL Security Guard**: AST and regex guardrails permitting only read-only `SELECT` and `WITH ... SELECT` queries while strictly blocking any modifying statements.
+- **Observability & Health Checks**:
+  - `/health/live` and `/health/ready` endpoints with database latency ping.
+  - Request ID correlation (`X-Request-ID`) and response time tracking (`X-Response-Time-Ms`).
+  - Structured application logging.
 
 ---
 
@@ -26,38 +36,45 @@ An enterprise-ready, modular FastAPI application that dynamically inspects relat
 
 ```
 Text_To_SQL_Chatbot/
+├── data_profiler.py          # Standalone CLI Data Profiler & Ingestion Tool
 ├── .env.example              # Environment variables template
-├── .gitignore                # Git ignore rules
-├── README.md                 # Project documentation
 ├── requirements.txt          # Python dependencies
 ├── app.db                    # SQLite metadata store for chats and saved connections
 │
-├── app/                      # Main application package
-│   ├── config.py             # Application settings & Gemini configuration
-│   ├── main.py               # FastAPI entry point & route mounting
+├── text_to_sql_chatbot/
+│   ├── data_profiler.py      # App copy of the profiler CLI
+│   ├── app/                  # Main application package
+│   │   ├── config.py         # Production settings & Gemini configuration
+│   │   ├── main.py           # FastAPI entry point, middlewares & lifecycle
+│   │   │
+│   │   ├── api/              # REST API layer
+│   │   │   ├── endpoints.py  # Routes (/chats, /ask, /connections, /datasets, /health)
+│   │   │   └── schemas.py    # Pydantic request & response models
+│   │   │
+│   │   ├── core/             # Core database & profiler engines
+│   │   │   ├── database.py   # Thread-safe engine switcher, connection pooling
+│   │   │   ├── db_schema.py  # Dynamic schema extractor with exact data types
+│   │   │   ├── models.py     # SQLAlchemy ORM models (Chat, Message, DatabaseConnection)
+│   │   │   ├── sql_guard.py  # Read-only SQL safety validator
+│   │   │   └── data_profiler.py # Tabular data understanding & semantic inference
+│   │   │
+│   │   └── services/         # AI service integrations
+│   │       └── llm_service.py # Gemini client, fallback ladder & self-correction
 │   │
-│   ├── api/                  # API layer
-│   │   ├── endpoints.py      # Route handlers (/ask, /system-info, /connections)
-│   │   └── schemas.py        # Pydantic request & response models
+│   ├── data/                 # Sample reports (Excel, CSV) and SQL schemas
 │   │
-│   ├── core/                 # Core logic & database engines
-│   │   ├── database.py       # Metadata engine, dynamic target engine & live tester
-│   │   ├── db_schema.py      # Dynamic schema extractor with exact data types
-│   │   ├── models.py         # SQLAlchemy models (Chat, Message, DatabaseConnection)
-│   │   └── sql_guard.py      # Read-only SQL safety validator
+│   ├── static/               # Frontend web application (Vanilla HTML/CSS/JS)
+│   │   ├── index.html        # Main Chatbot Dashboard
+│   │   ├── app.js            # Chat controller & profile switcher
+│   │   ├── datasets.html     # Dataset Ingestion & Profiler UI
+│   │   ├── datasets.js       # Dataset upload and ingestion controller
+│   │   ├── connections.html  # Database Connection Manager
+│   │   ├── connections.js    # Connection form & profile manager
+│   │   ├── dashboard.html    # Collections & Loan Analytics Dashboard
+│   │   └── styles.css        # Dark glassmorphism design system
 │   │
-│   └── services/             # External service integrations
-│       └── llm_service.py    # Google Gemini client, prompt engine & self-correction
-│
-├── static/                   # Frontend web application (Vanilla HTML/CSS/JS)
-│   ├── index.html            # Main Chatbot Dashboard
-│   ├── app.js                # Chat controller & profile switcher
-│   ├── connections.html      # Database Connection Manager
-│   ├── connections.js        # Connection form & profile manager
-│   └── styles.css            # Dark glassmorphism design system
-│
-└── tests/                    # Automated test suite
-    └── test_all.py           # End-to-end verification tests
+│   └── tests/                # Automated test suite
+│       └── test_all.py       # Comprehensive unit & integration tests
 ```
 
 ---
@@ -82,15 +99,40 @@ GEMINI_MODEL=gemini-2.5-flash
 
 ### 4. Start the Application Server
 ```powershell
-.\venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000
+```
+
+---
+
+## 🛠️ CLI Data Profiler Usage
+
+You can run `data_profiler.py` directly from the command line on any tabular dataset:
+
+```bash
+# 1. Print colorized column summary table
+python data_profiler.py --file "text_to_sql_chatbot/data/Dynamic Collection Done MIS Report (1).xlsx"
+
+# 2. Generate LLM Prompt Markdown schema
+python data_profiler.py --file "text_to_sql_chatbot/data/SOA Master Export Report-28-Jul-2026 (2).csv" --format markdown
+
+# 3. Export JSON schema dictionary
+python data_profiler.py --file "text_to_sql_chatbot/data/SOA Master Export Report-28-Jul-2026 (2).csv" --to-json schema.json
+
+# 4. Generate SQL CREATE TABLE DDL
+python data_profiler.py --file "text_to_sql_chatbot/data/Dynamic Collection Done MIS Report (1).xlsx" --format ddl
+
+# 5. Ingest file directly into SQLite database
+python data_profiler.py --file "text_to_sql_chatbot/data/Dynamic Collection Done MIS Report (1).xlsx" --to-sqlite app.db --table-name collection_mis
 ```
 
 ---
 
 ## 🌐 Web Interfaces
 
-- **Chatbot Dashboard**: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+- **AI Chatbot**: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+- **Dataset Ingestion & Profiler**: [http://127.0.0.1:8000/datasets.html](http://127.0.0.1:8000/datasets.html)
 - **Database Connection Manager**: [http://127.0.0.1:8000/connections.html](http://127.0.0.1:8000/connections.html)
+- **Analytics Dashboard**: [http://127.0.0.1:8000/dashboard.html](http://127.0.0.1:8000/dashboard.html)
 - **Interactive Swagger API Docs**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ---
@@ -98,5 +140,6 @@ GEMINI_MODEL=gemini-2.5-flash
 ## 🧪 Running Automated Tests
 
 ```powershell
-.\venv\Scripts\python.exe tests/test_all.py
+python text_to_sql_chatbot/tests/test_all.py
 ```
+*(All 13 unit and integration tests covering security, profiling, database switching, and API endpoints).*

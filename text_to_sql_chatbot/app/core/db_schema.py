@@ -1,27 +1,34 @@
+"""
+Dynamic Database Schema Reflection & In-Memory Caching Engine.
+"""
+
+import logging
 from typing import Dict, List, Optional
 from sqlalchemy import inspect, text
 from app.core.database import get_target_engine
 
-# Schema Cache indexed by engine connection URL
+logger = logging.getLogger(__name__)
+
+# Schema Cache indexed by engine connection URL string
 _SCHEMA_CACHE: Dict[str, str] = {}
 _IGNORED_TABLES = {"chats", "messages", "saved_connections", "sqlite_sequence", "_ingestion_metadata"}
 
 
 def invalidate_schema_cache():
-    """Clears the schema cache when the database connection changes."""
+    """Clears the schema cache when the database connection changes or tables are modified."""
     global _SCHEMA_CACHE
     _SCHEMA_CACHE.clear()
+    logger.info("Database schema cache invalidated.")
 
 
 def get_db_schema(force_refresh: bool = False) -> str:
     """
     Dynamically extracts the exact schema from the active target database engine.
     Reflects:
-      - All user tables
-      - Exact column names & SQL data types (e.g., VARCHAR(100), DECIMAL(10,2), INTEGER, TIMESTAMP)
-      - Primary Key constraints (PK)
-      - Foreign Key constraints (FK)
-      - Sample categorical distinct values for string/enum columns
+      - All user tables & normalized column names
+      - Exact SQL data types (e.g., VARCHAR(100), DECIMAL(10,2), INTEGER, TIMESTAMP)
+      - Primary Key (PK) & Foreign Key (FK) constraints
+      - Real categorical distinct values for string/enum columns to assist LLM literal filters
     """
     global _SCHEMA_CACHE
     current_engine = get_target_engine()
@@ -52,9 +59,8 @@ def get_db_schema(force_refresh: bool = False) -> str:
                 col_defs = []
                 for col in columns:
                     col_name = col["name"]
-                    # Exact SQL DataType assigned to the column
                     col_type = str(col["type"]).upper()
-                    
+
                     parts = [f"{col_name} {col_type}"]
                     if col_name in pk_cols:
                         parts.append("PRIMARY KEY")
@@ -62,11 +68,18 @@ def get_db_schema(force_refresh: bool = False) -> str:
                         parts.append("NOT NULL")
 
                     # Extract sample values for categorical / string columns to assist LLM with accurate literal filtering
-                    if any(c in col_type for c in ["CHAR", "TEXT", "ENUM", "STRING"]) or any(
-                        k in col_name.lower() for k in ["status", "type", "category", "city", "state", "segment", "mode", "role", "bucket"]
+                    if any(c in col_type for c in ["CHAR", "TEXT", "ENUM", "STRING", "VARCHAR"]) or any(
+                        k in col_name.lower() for k in [
+                            "status", "type", "category", "city", "state", "zone", "region",
+                            "segment", "mode", "role", "bucket", "gender", "product"
+                        ]
                     ):
                         try:
-                            sample_sql = f"SELECT DISTINCT {quote_char}{col_name}{quote_char} FROM (SELECT {quote_char}{col_name}{quote_char} FROM {quote_char}{table}{quote_char} WHERE {quote_char}{col_name}{quote_char} IS NOT NULL LIMIT 100) sub LIMIT 3"
+                            sample_sql = (
+                                f"SELECT DISTINCT {quote_char}{col_name}{quote_char} "
+                                f"FROM (SELECT {quote_char}{col_name}{quote_char} FROM {quote_char}{table}{quote_char} "
+                                f"WHERE {quote_char}{col_name}{quote_char} IS NOT NULL LIMIT 100) sub LIMIT 3"
+                            )
                             rows = conn.execute(text(sample_sql)).fetchall()
                             samples = [str(r[0]) for r in rows if r[0] is not None and str(r[0]).strip()]
                             if samples:
@@ -95,5 +108,5 @@ def get_db_schema(force_refresh: bool = False) -> str:
 
     except Exception as e:
         err_msg = f"-- Dynamic schema extraction warning: {str(e)}"
-        print(err_msg)
+        logger.error(err_msg)
         return err_msg
