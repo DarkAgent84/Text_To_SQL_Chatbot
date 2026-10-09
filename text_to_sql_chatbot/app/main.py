@@ -13,9 +13,11 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
+from sqlalchemy import text
 
 from app.config import settings
 from app.core.database import Base, engine
+from app.core import models  # Ensures all ORM models are registered on Base
 from app.api.endpoints import router as api_router
 
 # Configure structured logging
@@ -32,6 +34,7 @@ async def lifespan(app: FastAPI):
     """Application lifespan lifecycle: initializes database metadata tables and cleans up on shutdown."""
     logger.info(f"[{settings.PROJECT_NAME}] Starting enterprise server v{settings.VERSION} (env: {settings.ENVIRONMENT})...")
     Base.metadata.create_all(bind=engine)
+
     
     # Auto-migrate columns for existing SQLite database files
     try:

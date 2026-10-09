@@ -46,6 +46,17 @@ class AskQuestionResponse(BaseModel):
     row_count: int = 0
     chart: Optional[ChartSuggestion] = None
 
+    # Title-case aliases for frontend backwards compatibility
+    Answer: Optional[str] = None
+    SQL_Query: Optional[str] = Field(default=None, alias="SQL Query")
+    SQL_Results: Optional[List[Dict[str, Any]]] = Field(default=None, alias="SQL Results")
+    Model_Used: Optional[str] = Field(default=None, alias="Model Used")
+    Database_Used: Optional[str] = Field(default=None, alias="Database Used")
+    Chat_Id: Optional[int] = Field(default=None, alias="Chat Id")
+
+    model_config = {"populate_by_name": True, "extra": "allow"}
+
+
 
 class MessageDetail(BaseModel):
     id: int
@@ -158,4 +169,46 @@ class HealthResponse(BaseModel):
 class ErrorResponse(BaseModel):
     error: str
     code: Optional[str] = "INTERNAL_ERROR"
-    detail: Optional[str] = None
+    detail: Optional[Any] = None
+
+
+# ----------------------------------------------------------------------
+# Dashboard & Dynamic Metrics Schemas
+# ----------------------------------------------------------------------
+
+class MetricFilterSpec(BaseModel):
+    column: str
+    operator: str = "="
+    value: Any
+
+
+class MetricBuilderSpec(BaseModel):
+    table: str
+    column: Optional[str] = "*"
+    aggregation: str = "COUNT"
+    filters: Optional[List[MetricFilterSpec]] = []
+    group_by: Optional[str] = None
+
+
+class MetricEvaluationRequest(BaseModel):
+    id: Optional[str] = None
+    key: Optional[str] = None
+    title: Optional[str] = "Custom Metric"
+    mode: str = "builder"  # builder, sql, manual, formula
+    sql: Optional[str] = None
+    builder: Optional[MetricBuilderSpec] = None
+    manual_value: Optional[Any] = None
+    format: Optional[str] = "number"
+    unit: Optional[str] = ""
+    trend: Optional[str] = None
+    target: Optional[float] = None
+    color: Optional[str] = "blue"
+    icon: Optional[str] = "chart"
+    global_filters: Optional[Dict[str, Any]] = None
+
+
+class DashboardConfigSaveRequest(BaseModel):
+    connection_id: Optional[int] = None
+    name: Optional[str] = "default"
+    config: Dict[str, Any]
+

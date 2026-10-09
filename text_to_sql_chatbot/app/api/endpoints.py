@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, text
 
@@ -34,6 +34,14 @@ from app.services.llm_service import (
     suggest_chart_recommendation,
     get_system_info
 )
+from app.services.dashboard_service import (
+    compute_all_dashboard_metrics,
+    evaluate_single_metric,
+    get_table_columns_meta,
+    get_dashboard_config,
+    save_dashboard_config,
+    reset_dashboard_config
+)
 from app.api.schemas import (
     ChatCreate,
     ChatResponse,
@@ -49,7 +57,9 @@ from app.api.schemas import (
     DatasetIngestRequest,
     DatasetIngestResponse,
     HealthResponse,
-    ErrorResponse
+    ErrorResponse,
+    MetricEvaluationRequest,
+    DashboardConfigSaveRequest
 )
 
 logger = logging.getLogger(__name__)
@@ -93,6 +103,7 @@ def health_check(db: Session = Depends(get_db)):
 
 
 @router.get("/system/info", tags=["System"])
+@router.get("/system-info", tags=["System"])
 def system_information():
     """Returns active database connection information and model config."""
     return get_system_info()
@@ -288,7 +299,14 @@ def ask_question(
         "database_used": sys_info.get("database", "Active Target DB"),
         "execution_time_ms": exec_time_ms,
         "row_count": len(answer_rows),
-        "chart": chart_info
+        "chart": chart_info,
+        # Title-case aliases for frontend
+        "Answer": interpreted_answer,
+        "SQL Query": sql,
+        "SQL Results": answer_rows,
+        "Model Used": used_model,
+        "Database Used": sys_info.get("database", "Active Target DB"),
+        "Chat Id": chat_id
     }
 
 
@@ -560,3 +578,116 @@ def refresh_schema():
     invalidate_schema_cache()
     schema_text = get_db_schema(force_refresh=True)
     return {"status": "success", "schema": schema_text}
+
+
+# ======================================================================
+# Dashboard & Dynamic Metrics Endpoints
+# ======================================================================
+
+@router.get("/dashboard/metrics", tags=["Dashboard"])
+def get_dashboard_metrics_endpoint(request: Request, table_scope: Optional[str] = None):
+    """Computes all schema-driven dynamic metrics from the active target database."""
+    filters = {}
+    for k, v in request.query_params.items():
+        if v and v != "all" and k not in ("t", "_", "limit", "offset", "table_scope"):
+            filters[k] = v
+
+    try:
+        metrics = compute_all_dashboard_metrics(global_filters=filters, table_scope=table_scope)
+        return metrics
+    except Exception as e:
+        logger.error(f"Dashboard metrics calculation error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to calculate dashboard metrics: {str(e)}"
+        )
+
+
+@router.post("/dashboard/generate", tags=["Dashboard"])
+def auto_generate_dashboard_endpoint(db: Session = Depends(get_db)):
+    """Automatically analyzes active database schema and generates a tailored dashboard configuration."""
+    try:
+        metrics = compute_all_dashboard_metrics()
+        # Reset custom config so the newly generated schema metrics take effect
+        active_info = get_active_connection_info()
+        conn_id = active_info.get("id")
+        reset_dashboard_config(conn_id, db)
+        return {
+            "status": "success",
+            "message": "Dashboard successfully generated for active database.",
+            "metrics": metrics
+        }
+    except Exception as e:
+        logger.error(f"Auto dashboard generation error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+@router.post("/dashboard/metric/evaluate", tags=["Dashboard"])
+def evaluate_custom_metric_endpoint(payload: MetricEvaluationRequest):
+    """
+    Evaluates a single custom metric specification (via SQL, Visual Builder, or Formula)
+    in real-time against the active database.
+    """
+    try:
+        metric_dict = payload.model_dump()
+        result = evaluate_single_metric(metric_dict, global_filters=payload.global_filters)
+        return result
+    except Exception as e:
+        logger.error(f"Custom metric evaluation error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Metric evaluation failed: {str(e)}"
+        )
+
+
+@router.get("/dashboard/schema-meta", tags=["Dashboard"])
+def get_dashboard_schema_metadata():
+    """Returns available tables, columns, semantic types, and distinct sample values for building metrics."""
+    try:
+        return get_table_columns_meta()
+    except Exception as e:
+        logger.error(f"Failed to extract schema metadata: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/dashboard/config", tags=["Dashboard"])
+def get_saved_dashboard_config_endpoint(db: Session = Depends(get_db)):
+    """Retrieves saved custom dashboard configurations and metric overrides."""
+    active_info = get_active_connection_info()
+    conn_id = active_info.get("id")
+    config = get_dashboard_config(conn_id, db)
+    return {
+        "status": "success",
+        "has_custom_config": config is not None,
+        "config": config.get("config") if config else None
+    }
+
+
+@router.post("/dashboard/config", tags=["Dashboard"])
+def save_custom_dashboard_config_endpoint(
+    payload: DashboardConfigSaveRequest,
+    db: Session = Depends(get_db)
+):
+    """Persists customized metric definitions, layout, cards, and formulas."""
+    active_info = get_active_connection_info()
+    conn_id = payload.connection_id if payload.connection_id is not None else active_info.get("id")
+    saved = save_dashboard_config(conn_id, payload.config, db)
+    return {
+        "status": "success",
+        "message": "Dashboard configuration saved successfully.",
+        "config": saved
+    }
+
+
+@router.post("/dashboard/config/reset", tags=["Dashboard"])
+def reset_custom_dashboard_config_endpoint(db: Session = Depends(get_db)):
+    """Resets dashboard configuration back to default system metrics."""
+    active_info = get_active_connection_info()
+    conn_id = active_info.get("id")
+    reset_dashboard_config(conn_id, db)
+    return {
+        "status": "success",
+        "message": "Dashboard configuration reset to default."
+    }
+

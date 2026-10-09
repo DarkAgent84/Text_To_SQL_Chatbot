@@ -101,3 +101,27 @@ class DatabaseConnection(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
+
+
+class DashboardConfig(Base):
+    """Stores customized dashboard layouts, modified metrics, formulas, and filter settings."""
+    __tablename__ = "dashboard_configs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    connection_id = Column(Integer, nullable=True, index=True)  # Null for default DB
+    name = Column(String(100), default="default", nullable=False)
+    config_json = Column(JSON, nullable=False)  # Contains widgets, metric definitions, filters
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "connection_id": self.connection_id,
+            "name": self.name,
+            "config": self.config_json,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
+
+

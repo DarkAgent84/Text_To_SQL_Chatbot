@@ -41,11 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function fetchSystemInfo() {
     try {
-      const res = await fetch('/api/v1/system-info');
+      let res = await fetch('/api/v1/system-info');
+      if (!res.ok) res = await fetch('/api/v1/system/info');
       if (res.ok) {
         const info = await res.json();
         if (dialectBadge && info.database) dialectBadge.textContent = info.database;
-        if (modelBadge && info.active_model) modelBadge.textContent = info.active_model;
+        if (modelBadge && (info.active_model || info.model)) modelBadge.textContent = info.active_model || info.model;
         if (welcomeDbTitle && info.reference_name) {
           welcomeDbTitle.textContent = `Query "${info.reference_name}"`;
         }
@@ -139,17 +140,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       loadingCard.remove();
 
-      if (!response.ok || data.error) {
-        appendErrorCard(data.error || 'An unexpected error occurred while processing your request.');
+      if (!response.ok || data.error || (data.detail && !data.answer && !data["Answer"])) {
+        const errMsg = data.detail ? (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)) : (data.error || 'An unexpected error occurred while processing your request.');
+        appendErrorCard(errMsg);
       } else {
-        if (data["Chat Id"]) {
-          activeChatId = data["Chat Id"];
+        const chatId = data.chat_id || data["Chat Id"];
+        if (chatId) {
+          activeChatId = chatId;
         }
-        if (dialectBadge && data["Database Used"]) {
-          dialectBadge.textContent = data["Database Used"];
+        const dbInfo = data.database_used || data["Database Used"];
+        if (dialectBadge && dbInfo) {
+          dialectBadge.textContent = dbInfo;
         }
-        if (modelBadge && data["Model Used"]) {
-          modelBadge.textContent = data["Model Used"];
+        const modelInfo = data.model_used || data["Model Used"];
+        if (modelBadge && modelInfo) {
+          modelBadge.textContent = modelInfo;
         }
         appendBotCard(data);
       }
@@ -195,9 +200,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const card = document.createElement('div');
     card.className = 'bot-card';
 
-    const answer = data["Answer"] || 'No answer generated.';
-    const sql = data["SQL Query"] || '';
-    const results = data["SQL Results"] || [];
+    const answer = data.answer || data["Answer"] || 'No answer generated.';
+    const sql = data.sql_query || data["SQL Query"] || '';
+    const results = data.sql_results || data["SQL Results"] || [];
 
     // 1. AI Answer Text
     const answerHtml = `<div class="bot-answer">${formatMarkdown(answer)}</div>`;
@@ -257,12 +262,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 4. Response Metadata Footer Tag
-    const modelUsed = data["Model Used"] || 'Gemini AI';
-    const dbUsed = data["Database Used"] || 'Database';
+    const modelUsed = data.model_used || data["Model Used"] || 'Gemini AI';
+    const dbUsed = data.database_used || data["Database Used"] || 'Database';
+    const execMs = data.execution_time_ms || data["Execution Time Ms"] || 0;
     const metaHtml = `
       <div style="margin-top: 12px; pt-8px; border-top: 1px solid var(--border-color, #e2e8f0); display: flex; gap: 16px; align-items: center; font-size: 0.78rem; color: var(--text-muted, #64748b);">
         <span>🤖 Model: <strong>${escapeHtml(modelUsed)}</strong></span>
         <span>💾 DB: <strong>${escapeHtml(dbUsed)}</strong></span>
+        ${execMs ? `<span>⚡ <strong>${execMs}ms</strong></span>` : ''}
       </div>
     `;
 

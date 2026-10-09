@@ -36,6 +36,10 @@ Base = declarative_base()
 
 def init_metadata_db():
     """Initializes metadata tables and ensures required schema columns exist."""
+    try:
+        from app.core import models  # Register all models on Base
+    except Exception:
+        pass
     Base.metadata.create_all(bind=engine)
     try:
         with engine.connect() as conn:

@@ -18,6 +18,10 @@ __pycache__/
 *.db
 *.sqlite3
 
+# Uploaded datasets
+text_to_sql_chatbot/data/uploads/*
+!text_to_sql_chatbot/data/uploads/.gitkeep
+
 # IDEs & Editors
 .vscode/
 .idea/

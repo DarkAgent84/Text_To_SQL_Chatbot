@@ -22,13 +22,12 @@ class Settings:
 
     # Gemini LLM Settings
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     GEMINI_FALLBACK_MODELS: List[str] = field(default_factory=lambda: [
-        "gemini-2.5-flash",
-        "gemini-3.5-flash",
         "gemini-3.6-flash",
-        "gemini-flash-latest",
-        "gemini-flash-lite-latest"
+        "gemini-3.5-flash",
+        "gemini-flash-lite-latest",
+        "gemini-3.8-flash"
     ])
 
     # Database Settings

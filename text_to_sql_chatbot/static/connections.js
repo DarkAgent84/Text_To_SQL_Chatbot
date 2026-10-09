@@ -267,26 +267,25 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <div class="conn-card ${conn.is_active ? 'active-profile' : ''}" data-id="${conn.id}">
           <div class="conn-card-main">
-            <div class="conn-card-header">
-              <div class="conn-title-wrap">
-                <span class="conn-icon">${icon}</span>
-                <span class="conn-title">${escapeHtml(conn.reference_name)}</span>
-              </div>
-              <div class="conn-badges">
-                <span class="badge badge-db-type">${conn.db_type.toUpperCase()}</span>
-                ${conn.is_active ? '<span class="badge badge-active">● ACTIVE</span>' : ''}
-              </div>
+            <div class="conn-title-row">
+              <span class="conn-icon">${icon}</span>
+              <span class="conn-title">${escapeHtml(conn.reference_name)}</span>
+              <span class="conn-badge-type">${conn.db_type.toUpperCase()}</span>
+              ${conn.is_active ? '<span class="conn-badge-active"><span class="conn-pulse-dot"></span> Active</span>' : ''}
             </div>
-            <div class="conn-meta">${escapeHtml(subtitle)}</div>
+            <div class="conn-meta">
+              <span class="meta-icon">📍</span>
+              <span class="meta-text">${escapeHtml(subtitle)}</span>
+            </div>
           </div>
           <div class="conn-card-actions">
             ${
               conn.is_active
-                ? `<button class="btn-sm btn-active-indicator" disabled>✓ Connected</button>`
-                : `<button class="btn-sm btn-connect" data-action="activate" data-id="${conn.id}" onclick="window.handleActivate(${conn.id})">⚡ Connect</button>`
+                ? `<span class="conn-status-pill">✓ Connected</span>`
+                : `<button class="btn-conn-action btn-conn-activate" data-action="activate" data-id="${conn.id}" onclick="window.handleActivate(${conn.id})">⚡ Connect</button>`
             }
-            <button class="btn-sm btn-outline" data-action="edit" data-id="${conn.id}" onclick="window.handleEdit(${conn.id})" title="Edit Connection">✏️ Edit</button>
-            <button class="btn-sm btn-danger btn-delete-conn" data-action="delete" data-id="${conn.id}" onclick="window.handleDelete(${conn.id})" title="Delete Connection">🗑️ Delete</button>
+            <button class="btn-conn-action btn-conn-edit" data-action="edit" data-id="${conn.id}" onclick="window.handleEdit(${conn.id})" title="Edit Connection">✏️ Edit</button>
+            <button class="btn-conn-action btn-conn-delete" data-action="delete" data-id="${conn.id}" onclick="window.handleDelete(${conn.id})" title="Delete Connection">🗑️ Delete</button>
           </div>
         </div>
       `;
@@ -403,7 +402,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Fetch Active Connection Badge in Header
   async function fetchActiveConnection() {
     try {
-      const res = await fetch('/api/v1/system-info');
+      let res = await fetch('/api/v1/system-info');
+      if (!res.ok) res = await fetch('/api/v1/system/info');
       if (res.ok) {
         const info = await res.json();
         if (activeDbBadge) {

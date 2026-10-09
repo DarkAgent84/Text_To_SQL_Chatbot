@@ -7,10 +7,17 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📁</text></svg>">
   <style>
+    body {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      height: auto !important;
+      min-height: 100vh !important;
+    }
     .datasets-container {
       max-width: 1400px;
       margin: 0 auto;
       padding: 24px;
+      padding-bottom: 120px;
     }
     .upload-zone {
       border: 2px dashed rgba(255, 255, 255, 0.15);
@@ -23,8 +30,8 @@
       margin-bottom: 24px;
     }
     .upload-zone:hover, .upload-zone.dragover {
-      border-color: #3b82f6;
-      background: rgba(59, 130, 246, 0.05);
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.05);
     }
     .upload-icon {
       font-size: 48px;
@@ -37,7 +44,7 @@
       margin-bottom: 32px;
     }
     .file-card {
-      background: #1e293b;
+      background: #111827;
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 10px;
       padding: 16px;
@@ -59,51 +66,68 @@
       color: #94a3b8;
     }
     .profile-section {
-      background: #1e293b;
+      background: #111827;
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 12px;
       padding: 24px;
       margin-top: 24px;
     }
+    .table-scroll-wrapper {
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: 60vh;
+      margin-top: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      background: #0b0f19;
+    }
     .profile-table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 16px;
       font-size: 13px;
     }
     .profile-table th, .profile-table td {
-      padding: 10px 12px;
+      padding: 12px 14px;
       text-align: left;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
-    .profile-table th {
-      background: rgba(0, 0, 0, 0.2);
+    .profile-table thead th {
+      position: sticky;
+      top: 0;
+      background: #0f172a;
       font-weight: 600;
       color: #94a3b8;
+      z-index: 10;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    .profile-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.02);
     }
     .type-badge {
       display: inline-block;
-      padding: 2px 8px;
+      padding: 3px 8px;
       border-radius: 4px;
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    .type-date { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
-    .type-currency { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-    .type-identifier { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-    .type-categorical { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
-    .type-boolean { background: rgba(236, 72, 153, 0.2); color: #f472b6; }
-    .type-coordinate { background: rgba(20, 184, 166, 0.2); color: #2dd4bf; }
-    .type-empty { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
+    .type-date { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .type-currency { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); }
+    .type-identifier { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+    .type-categorical { background: rgba(129, 140, 248, 0.15); color: #818cf8; border: 1px solid rgba(129, 140, 248, 0.3); }
+    .type-boolean { background: rgba(251, 113, 133, 0.15); color: #fb7185; border: 1px solid rgba(251, 113, 133, 0.3); }
+    .type-coordinate { background: rgba(45, 212, 191, 0.15); color: #2dd4bf; border: 1px solid rgba(45, 212, 191, 0.3); }
+    .type-empty { background: rgba(156, 163, 175, 0.15); color: #9ca3af; border: 1px solid rgba(156, 163, 175, 0.3); }
     .ingest-form {
       display: flex;
       gap: 12px;
       align-items: center;
       margin-top: 16px;
-      background: rgba(0,0,0,0.15);
+      background: rgba(0, 0, 0, 0.3);
       padding: 16px;
       border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
     }
     .ingest-form input {
       flex: 1;
@@ -112,10 +136,16 @@
       border: 1px solid rgba(255, 255, 255, 0.1);
       background: #0f172a;
       color: #fff;
+      font-size: 14px;
+    }
+    .ingest-form input:focus {
+      outline: none;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
     }
   </style>
 </head>
-<body>
+<body class="page-datasets">
 
   <!-- Header -->
   <header class="app-header">
@@ -131,7 +161,7 @@
         <span>💬</span> AI Chatbot
       </a>
       <a href="/datasets.html" class="nav-btn active">
-        <span>📁</span> Dataset Ingestion
+        <span>📁</span> Datasets & Profiler
       </a>
       <a href="/connections.html" class="nav-btn">
         <span>⚙️</span> Database Connections
@@ -145,7 +175,7 @@
     </div>
   </header>
 
-  <!-- Container -->
+  <!-- Main Container -->
   <div class="datasets-container">
     
     <div style="margin-bottom: 24px;">
@@ -189,19 +219,19 @@
         </button>
       </div>
 
-      <!-- Column Table -->
-      <div style="overflow-x: auto; margin-top: 20px;">
+      <!-- Column Table with Sticky Header and Dedicated Scroll Container -->
+      <div class="table-scroll-wrapper">
         <table class="profile-table">
           <thead>
             <tr>
-              <th>#</th>
-              <th>Column Name</th>
-              <th>Inferred Type</th>
-              <th>SQL Type</th>
-              <th>Role</th>
-              <th>Null %</th>
-              <th>Sample / Distinct Values</th>
-              <th>LLM Guidance Note</th>
+              <th style="width: 50px;">#</th>
+              <th style="min-width: 220px;">Column Name</th>
+              <th style="min-width: 130px;">Inferred Type</th>
+              <th style="min-width: 120px;">SQL Type</th>
+              <th style="min-width: 160px;">Role</th>
+              <th style="min-width: 80px;">Null %</th>
+              <th style="min-width: 200px;">Sample / Distinct Values</th>
+              <th style="min-width: 280px;">LLM Guidance Note</th>
             </tr>
           </thead>
           <tbody id="profileTableBody"></tbody>
