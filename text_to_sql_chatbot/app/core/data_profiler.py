@@ -833,3 +833,158 @@ class DatasetProfiler:
             )
 
         return "\n".join(lines)
+
+    def prepare_dataframe_for_sql(self, df: pd.DataFrame, table_profile: TableProfile) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+        """
+        Cleans, casts, and prepares a raw pandas DataFrame for SQL ingestion using
+        inferred semantic types, and constructs the corresponding SQLAlchemy column types.
+        Ensures columns are not stored as generic TEXT in the database.
+        """
+        import sqlalchemy.types as satypes
+
+        # 1. Map raw column names to clean SQL identifiers
+        col_map = {col.name: col.clean_name for col in table_profile.columns}
+        df = df.rename(columns=col_map).copy()
+
+        dtype_map: Dict[str, Any] = {}
+
+        for col in table_profile.columns:
+            cname = col.clean_name
+            if cname not in df.columns:
+                continue
+
+            inferred = (col.inferred_type or "").upper()
+            sql_t = (col.sql_type or "").upper()
+
+            # --- 1. NUMERIC / CURRENCY / PERCENTAGE / FLOAT / COORDINATE ---
+            if (
+                inferred in ("CURRENCY", "PERCENTAGE", "FLOAT", "COORDINATE")
+                or any(k in sql_t for k in ["DECIMAL", "NUMERIC", "FLOAT", "REAL", "DOUBLE"])
+            ):
+                def _parse_num(x):
+                    if pd.isna(x) or x is None:
+                        return np.nan
+                    if isinstance(x, (int, float, np.number)):
+                        return np.nan if math.isnan(x) else float(x)
+                    p = try_parse_numeric_string(str(x))
+                    return p if p is not None else np.nan
+
+                df[cname] = df[cname].apply(_parse_num)
+
+                # Determine exact SQLAlchemy type
+                if "DECIMAL" in sql_t or "NUMERIC" in sql_t or inferred == "CURRENCY":
+                    m = re.search(r"DECIMAL\((\d+),\s*(\d+)\)", sql_t)
+                    if m:
+                        dtype_map[cname] = satypes.Numeric(precision=int(m.group(1)), scale=int(m.group(2)))
+                    else:
+                        dtype_map[cname] = satypes.Numeric(15, 2)
+                elif inferred == "PERCENTAGE":
+                    dtype_map[cname] = satypes.Numeric(7, 4)
+                elif inferred == "COORDINATE":
+                    dtype_map[cname] = satypes.Numeric(10, 6)
+                else:
+                    dtype_map[cname] = satypes.Float()
+
+            # --- 2. INTEGER / BIGINT ---
+            elif inferred == "INTEGER" or any(k in sql_t for k in ["INT", "BIGINT"]):
+                def _parse_int(x):
+                    if pd.isna(x) or x is None:
+                        return np.nan
+                    if isinstance(x, (int, np.integer)):
+                        return int(x)
+                    if isinstance(x, (float, np.floating)):
+                        return int(x) if not math.isnan(x) else np.nan
+                    p = try_parse_numeric_string(str(x))
+                    if p is not None:
+                        return int(round(p))
+                    return np.nan
+
+                df[cname] = df[cname].apply(_parse_int)
+
+                if "BIGINT" in sql_t or (inferred == "IDENTIFIER" and "INT" in sql_t):
+                    dtype_map[cname] = satypes.BigInteger()
+                else:
+                    dtype_map[cname] = satypes.Integer()
+
+            # --- 3. DATE ---
+            elif inferred == "DATE" or sql_t == "DATE":
+                def _parse_date(x):
+                    if pd.isna(x) or x is None:
+                        return None
+                    if isinstance(x, (datetime, pd.Timestamp)):
+                        return x.date()
+                    s = str(x).strip()
+                    if not s or s.lower() in ("nan", "none", "null", "nat", ""):
+                        return None
+                    d_res = detect_date_string(s)
+                    if d_res and d_res[1]:
+                        try:
+                            return datetime.strptime(d_res[1], "%Y-%m-%d").date()
+                        except Exception:
+                            pass
+                    try:
+                        return pd.to_datetime(s).date()
+                    except Exception:
+                        return None
+
+                df[cname] = df[cname].apply(_parse_date)
+                dtype_map[cname] = satypes.Date()
+
+            # --- 4. DATETIME ---
+            elif inferred == "DATETIME" or any(k in sql_t for k in ["DATETIME", "TIMESTAMP"]):
+                def _parse_datetime(x):
+                    if pd.isna(x) or x is None:
+                        return None
+                    if isinstance(x, (datetime, pd.Timestamp)):
+                        return x.to_pydatetime() if hasattr(x, "to_pydatetime") else x
+                    s = str(x).strip()
+                    if not s or s.lower() in ("nan", "none", "null", "nat", ""):
+                        return None
+                    try:
+                        return pd.to_datetime(s).to_pydatetime()
+                    except Exception:
+                        return None
+
+                df[cname] = df[cname].apply(_parse_datetime)
+                dtype_map[cname] = satypes.DateTime()
+
+            # --- 5. BOOLEAN ---
+            elif inferred == "BOOLEAN" or sql_t == "BOOLEAN":
+                def _parse_bool(x):
+                    if pd.isna(x) or x is None:
+                        return None
+                    if isinstance(x, (bool, np.bool_)):
+                        return bool(x)
+                    s = str(x).strip().lower()
+                    if s in BOOLEAN_TRUE_VALUES:
+                        return True
+                    if s in BOOLEAN_FALSE_VALUES:
+                        return False
+                    return None
+
+                df[cname] = df[cname].apply(_parse_bool)
+                dtype_map[cname] = satypes.Boolean()
+
+            # --- 6. VARCHAR / TEXT ---
+            elif "VARCHAR" in sql_t:
+                m = re.search(r"VARCHAR\((\d+)\)", sql_t)
+                length = int(m.group(1)) if m else 255
+                target_len = max(255, length)
+                dtype_map[cname] = satypes.String(length=target_len)
+
+                def _clean_str(v):
+                    if pd.isna(v) or v is None:
+                        return None
+                    sv = str(v).strip()
+                    if sv.lower() in ("nan", "none", "null", ""):
+                        return None
+                    return sv[:target_len] if len(sv) > target_len else sv
+
+                df[cname] = df[cname].apply(_clean_str)
+
+            else:
+                dtype_map[cname] = satypes.Text()
+                df[cname] = df[cname].apply(lambda v: None if pd.isna(v) or str(v).lower() in ("nan", "none", "null") else str(v))
+
+        return df, dtype_map
+

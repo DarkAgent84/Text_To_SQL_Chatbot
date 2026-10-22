@@ -114,6 +114,34 @@ class TestDataProfiler(unittest.TestCase):
 
         self.assertIsNone(detect_date_string("not_a_date"))
 
+    def test_prepare_dataframe_for_sql_types(self):
+        import pandas as pd
+        from sqlalchemy import create_engine, inspect
+
+        profiler = DatasetProfiler()
+        raw_df = pd.DataFrame({
+            "Loan ID": ["L001", "L002", "L003"],
+            "Loan Amount ($)": ["$1,500.50", "$2,500.00", "$900.25"],
+            "Tenure Months": ["12", "24", "36"],
+            "Disbursal Date": ["28-Jul-2026", "30-06-2026", "2026-05-15"],
+            "Active Status": ["Yes", "No", "Yes"]
+        })
+        prof = profiler.profile_dataframe(raw_df, "test_loans", "test_loans")
+        cleaned_df, dtype_map = profiler.prepare_dataframe_for_sql(raw_df, prof)
+
+        # Ingest to in-memory SQLite
+        test_engine = create_engine("sqlite:///:memory:")
+        cleaned_df.to_sql("test_loans", test_engine, index=False, dtype=dtype_map)
+
+        insp = inspect(test_engine)
+        col_types = {c["name"]: str(c["type"]).upper() for c in insp.get_columns("test_loans")}
+
+        self.assertIn("NUMERIC", col_types.get("loan_amount", ""))
+        self.assertIn("INT", col_types.get("tenure_months", ""))
+        self.assertIn("DATE", col_types.get("disbursal_date", ""))
+        self.assertIn("BOOL", col_types.get("active_status", ""))
+
+
 
 class TestAPIEndpoints(unittest.TestCase):
     """Tests for FastAPI endpoints."""

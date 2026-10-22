@@ -145,6 +145,7 @@ class DatasetIngestRequest(BaseModel):
     file_name: str
     table_name: Optional[str] = None
     sheet_name: Optional[str] = None
+    connection_id: Optional[int] = None
 
 
 class DatasetIngestResponse(BaseModel):

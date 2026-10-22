@@ -8,6 +8,7 @@ let currentFileName = null;
 document.addEventListener("DOMContentLoaded", () => {
   initDropZone();
   loadDatasetsList();
+  loadTargetDatabases();
 
   document.getElementById("btnIngest").addEventListener("click", handleIngest);
   document.getElementById("btnShowMarkdown").addEventListener("click", showMarkdownModal);
@@ -180,6 +181,43 @@ function renderProfileTable(columns) {
   }).join("");
 }
 
+async function loadTargetDatabases() {
+  const sel = document.getElementById("targetConnectionSelect");
+  const indicator = document.getElementById("activeDbIndicator");
+  if (!sel) return;
+
+  try {
+    const [connRes, sysRes] = await Promise.all([
+      fetch("/api/v1/connections"),
+      fetch("/api/v1/system/info")
+    ]);
+    const conns = await connRes.json();
+    const sys = await sysRes.json();
+
+    const activeName = sys.reference_name || "Default Database";
+    if (indicator) {
+      indicator.innerText = `Current Active: ${activeName}`;
+    }
+
+    let optionsHtml = `<option value="0" ${activeName === "Default Database" ? "selected" : ""}>📁 Default SQLite (app.db)</option>`;
+
+    if (Array.isArray(conns)) {
+      conns.forEach(c => {
+        const isAct = c.is_active || c.reference_name === activeName;
+        const icon = c.db_type === "postgresql" ? "🐘" : (c.db_type === "mysql" ? "🐬" : "📁");
+        const hostPort = c.host ? `${c.host}${c.port ? ':' + c.port : ''}` : "";
+        const dbLabel = `${icon} ${c.reference_name} (${c.db_type.toUpperCase()} - ${c.database_name || 'db'} on ${hostPort}) ${isAct ? '★ [ACTIVE]' : ''}`;
+        optionsHtml += `<option value="${c.id}" ${isAct ? "selected" : ""}>${dbLabel}</option>`;
+      });
+    }
+
+    sel.innerHTML = optionsHtml;
+  } catch (err) {
+    console.warn("Failed to load databases list:", err);
+    sel.innerHTML = `<option value="0">📁 Default SQLite (app.db)</option>`;
+  }
+}
+
 async function handleIngest() {
   if (!currentFileName) return;
   const targetTable = document.getElementById("targetTableName").value.trim();
@@ -187,6 +225,9 @@ async function handleIngest() {
     alert("Please enter a valid target table name.");
     return;
   }
+
+  const sel = document.getElementById("targetConnectionSelect");
+  const connId = sel && sel.value !== "" && sel.value !== "0" ? parseInt(sel.value) : (sel && sel.value === "0" ? 0 : null);
 
   const btn = document.getElementById("btnIngest");
   const origText = btn.innerText;
@@ -197,12 +238,17 @@ async function handleIngest() {
     const res = await fetch("/api/v1/datasets/ingest", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ file_name: currentFileName, table_name: targetTable })
+      body: JSON.stringify({
+        file_name: currentFileName,
+        table_name: targetTable,
+        connection_id: connId
+      })
     });
     const data = await res.json();
 
     if (res.ok) {
-      if (confirm(`🎉 ${data.message}\n\nWould you like to open the AI Chatbot to start querying table '${data.table_name}' now?`)) {
+      loadTargetDatabases();
+      if (confirm(`🎉 ${data.message}\n\n(Tip: In pgAdmin, right-click 'Tables' and click 'Refresh' to view your newly created table).\n\nWould you like to open the AI Chatbot to query table '${data.table_name}' now?`)) {
         window.location.href = "/";
       }
     } else {

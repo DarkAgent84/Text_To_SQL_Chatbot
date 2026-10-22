@@ -502,8 +502,8 @@ def profile_dataset_endpoint(payload: DatasetProfileRequest):
 
 
 @router.post("/datasets/ingest", response_model=DatasetIngestResponse, tags=["Datasets"])
-def ingest_dataset_endpoint(payload: DatasetIngestRequest):
-    """Ingests a dataset file into the active database engine as a clean SQL table."""
+def ingest_dataset_endpoint(payload: DatasetIngestRequest, db: Session = Depends(get_db)):
+    """Ingests a dataset file into the specified or active database engine as a clean SQL table."""
     file_path = None
     for search_dir in [Path(settings.UPLOAD_DIR), Path("./data"), Path("./text_to_sql_chatbot/data"), Path(".")]:
         candidate = search_dir / payload.file_name
@@ -515,7 +515,25 @@ def ingest_dataset_endpoint(payload: DatasetIngestRequest):
         raise HTTPException(status_code=404, detail=f"File '{payload.file_name}' not found.")
 
     profiler = DatasetProfiler()
-    target_engine = get_target_engine()
+
+    # Determine target database engine
+    if payload.connection_id is not None:
+        if payload.connection_id in (0, -1):
+            target_engine = create_managed_engine(settings.DATABASE_URL)
+            db_display = "Default SQLite (app.db)"
+        else:
+            conn_obj = db.query(DatabaseConnection).filter(DatabaseConnection.id == payload.connection_id).first()
+            if not conn_obj:
+                raise HTTPException(status_code=404, detail=f"Database connection #{payload.connection_id} not found.")
+            
+            # Switch active engine to this chosen connection so subsequent queries target it
+            set_active_target_engine(conn_obj, db)
+            target_engine = get_target_engine()
+            db_display = f"{conn_obj.reference_name} ({conn_obj.db_type.upper()} - {conn_obj.database_name or 'db'})"
+    else:
+        target_engine = get_target_engine()
+        active_info = get_active_connection_info()
+        db_display = f"{active_info.get('reference_name', 'Active Database')} ({active_info.get('db_type', 'db').upper()})"
 
     try:
         import pandas as pd
@@ -532,13 +550,12 @@ def ingest_dataset_endpoint(payload: DatasetIngestRequest):
             else:
                 df = profiler._read_csv_robust(file_path)
 
-            # Map column names to clean SQL identifiers
-            col_map = {col.name: col.clean_name for col in prof.columns}
-            df = df.rename(columns=col_map)
+            # Clean and cast columns using inferred semantic types, and generate SQLAlchemy dtype map
+            cleaned_df, dtype_map = profiler.prepare_dataframe_for_sql(df, prof)
 
-            # Ingest into active target database
-            df.to_sql(tname, target_engine, if_exists="replace", index=False)
-            total_rows += len(df)
+            # Ingest into active target database with exact data types
+            cleaned_df.to_sql(tname, target_engine, if_exists="replace", index=False, dtype=dtype_map)
+            total_rows += len(cleaned_df)
 
         # Invalidate schema cache so the new table is immediately queryable
         invalidate_schema_cache()
@@ -548,7 +565,7 @@ def ingest_dataset_endpoint(payload: DatasetIngestRequest):
             table_name=final_table_name,
             rows_ingested=total_rows,
             columns_count=len(df.columns),
-            message=f"Successfully ingested {total_rows:,} rows into table '{final_table_name}'."
+            message=f"Successfully ingested {total_rows:,} rows into table '{final_table_name}' in database '{db_display}'."
         )
 
     except Exception as e:

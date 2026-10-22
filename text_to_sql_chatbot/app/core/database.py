@@ -57,6 +57,36 @@ def init_metadata_db():
             if msg_cols and "execution_time_ms" not in msg_cols:
                 conn.execute(text("ALTER TABLE messages ADD COLUMN execution_time_ms INTEGER"))
             conn.commit()
+
+            # Seed Local PostgreSQL connection from .env if present and not already registered
+            try:
+                import os
+                pg_user = os.getenv("POSTGRES_USER")
+                pg_db = os.getenv("POSTGRES_DB")
+                if pg_user and pg_db:
+                    from app.core.models import DatabaseConnection
+                    with SessionLocal() as db_session:
+                        existing = db_session.query(DatabaseConnection).filter(
+                            (DatabaseConnection.reference_name == "Local PostgreSQL (pgAdmin)") |
+                            ((DatabaseConnection.host == os.getenv("POSTGRES_HOST", "localhost")) &
+                             (DatabaseConnection.database_name == pg_db))
+                        ).first()
+                        if not existing:
+                            new_pg = DatabaseConnection(
+                                reference_name="Local PostgreSQL (pgAdmin)",
+                                db_type="postgresql",
+                                host=os.getenv("POSTGRES_HOST", "localhost"),
+                                port=int(os.getenv("POSTGRES_PORT", "5432")),
+                                database_name=pg_db,
+                                username=pg_user,
+                                password=os.getenv("POSTGRES_PASSWORD", ""),
+                                is_active=False
+                            )
+                            db_session.add(new_pg)
+                            db_session.commit()
+            except Exception as ex:
+                logger.debug(f"PostgreSQL auto-seed notice: {ex}")
+
     except Exception as e:
         logger.debug(f"Metadata DB check notice: {e}")
 
@@ -175,10 +205,40 @@ def test_db_connection_params(
 
 
 def get_target_engine() -> Engine:
-    """Returns the currently active target database engine with thread safety."""
-    global _active_target_engine
+    """Returns the currently active target database engine with thread safety, restoring saved active connection if available."""
+    global _active_target_engine, _active_connection_info
     with _ENGINE_LOCK:
         if _active_target_engine is None:
+            # Check if there is an active connection saved in DatabaseConnection table
+            try:
+                from app.core.models import DatabaseConnection
+                with SessionLocal() as db_session:
+                    active_conn = db_session.query(DatabaseConnection).filter(DatabaseConnection.is_active == True).first()
+                    if active_conn:
+                        url = build_db_url(
+                            db_type=active_conn.db_type,
+                            host=active_conn.host,
+                            port=active_conn.port,
+                            database_name=active_conn.database_name,
+                            username=active_conn.username,
+                            password=active_conn.password,
+                            extra_params=active_conn.extra_params
+                        )
+                        _active_target_engine = create_managed_engine(url)
+                        _active_connection_info = {
+                            "id": active_conn.id,
+                            "reference_name": active_conn.reference_name,
+                            "db_type": active_conn.db_type,
+                            "database_name": active_conn.database_name or "app.db",
+                            "host": active_conn.host or "localhost",
+                            "port": active_conn.port,
+                            "is_active": True
+                        }
+                        logger.info(f"Restored active database engine: {active_conn.reference_name} ({active_conn.db_type})")
+                        return _active_target_engine
+            except Exception as e:
+                logger.debug(f"Active connection restoration notice: {e}")
+
             url = settings.DATABASE_URL
             _active_target_engine = create_managed_engine(url)
         return _active_target_engine
@@ -268,6 +328,7 @@ def reset_active_target_engine_to_default(db: Optional[Session] = None) -> Dict[
 
 def get_active_connection_info() -> Dict[str, Any]:
     global _active_connection_info
+    get_target_engine()
     with _ENGINE_LOCK:
         return dict(_active_connection_info)
 

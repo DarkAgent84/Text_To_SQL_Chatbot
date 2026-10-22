@@ -56,7 +56,8 @@ def export_to_sqlite(file_path: str, db_path: str, table_name: Optional[str] = N
     profiler = DatasetProfiler()
     profiles = profiler.profile_file(file_path, sheet_name=sheet_name)
     
-    conn = sqlite3.connect(db_path)
+    from sqlalchemy import create_engine
+    engine = create_engine(f"sqlite:///{db_path}")
     
     for prof in profiles:
         target_tname = table_name or prof.clean_table_name
@@ -68,15 +69,14 @@ def export_to_sqlite(file_path: str, db_path: str, table_name: Optional[str] = N
         else:
             df = profiler._read_csv_robust(file_path)
             
-        # Rename columns to clean SQL names
-        clean_col_map = {col.name: col.clean_name for col in prof.columns}
-        df = df.rename(columns=clean_col_map)
+        # Clean values and prepare exact SQL column types
+        cleaned_df, dtype_map = profiler.prepare_dataframe_for_sql(df, prof)
         
-        # Write to SQLite
-        df.to_sql(target_tname, conn, if_exists="replace", index=False)
-        print(f"✅ Successfully written {len(df):,} rows into '{target_tname}' in {db_path}!")
+        # Write to SQLite with accurate data types
+        cleaned_df.to_sql(target_tname, engine, if_exists="replace", index=False, dtype=dtype_map)
+        print(f"✅ Successfully written {len(cleaned_df):,} rows into '{target_tname}' in {db_path} with typed schema!")
         
-    conn.close()
+    engine.dispose()
 
 
 def main():
