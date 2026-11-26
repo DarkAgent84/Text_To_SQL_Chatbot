@@ -18,8 +18,16 @@ __pycache__/
 *.db
 *.sqlite3
 
+# Proprietary Datasets & Large Reports (Protect sensitive customer MIS data)
+data/*.xlsx
+data/*.xls
+data/*SOA*.csv
+data/*MIS*.csv
+data/*Export*.csv
+
 # IDEs & Editors
 .vscode/
 .idea/
 *.swp
-*.swo
+*.swo
+

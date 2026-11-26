@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text-to-SQL AI Chatbot Dashboard</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-title">Text-to-SQL Chatbot</div>
+    </div>
+    <div class="header-meta">
+      <span class="badge badge-status">
+        <span class="status-dot"></span> Online
+      </span>
+      <span class="badge" id="dialectBadge">MySQL Database</span>
+      <span class="badge" id="modelBadge">Gemini 3.5 Flash</span>
+    </div>
+  </header>
+
+  <!-- Main App Layout -->
+  <div class="app-container">
+    
+    <!-- Sidebar / Quick Prompts -->
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-section-title">📊 SOA Report Analytics</div>
+        <div class="suggestion-chip" data-prompt="What is the total loan outstanding amount grouped by bucket in the SOA report?">
+          <span class="chip-icon">📈</span>
+          <span>Total loan outstanding by delinquency bucket</span>
+        </div>
+        <div class="suggestion-chip" data-prompt="Show the top 5 loans with the highest total dues.">
+          <span class="chip-icon">🚨</span>
+          <span>Top 5 highest total dues loans</span>
+        </div>
+        <div class="suggestion-chip" data-prompt="How many total loans are there per product name?">
+          <span class="chip-icon">🏦</span>
+          <span>Loan distribution by product type</span>
+        </div>
+        <div class="suggestion-chip" data-prompt="What is the average EMI amount for Loan Against Property?">
+          <span class="chip-icon">💳</span>
+          <span>Average EMI for Loan Against Property</span>
+        </div>
+        <div class="suggestion-chip" data-prompt="Show the top 5 branch IDs with the largest total dues.">
+          <span class="chip-icon">🏢</span>
+          <span>Top 5 branches by total dues</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Chat Viewport -->
+    <main class="chat-viewport">
+      <div class="chat-feed" id="chatFeed">
+        
+        <!-- Default Welcome Hero -->
+        <div class="welcome-screen" id="welcomeScreen">
+          <div class="welcome-hero-icon">🤖</div>
+          <div class="welcome-title">Ask your SOA Report Database</div>
+          <div class="welcome-subtitle">
+            Convert natural language questions into executable SQL queries against <strong>46,544 loan records</strong>, view raw SQL, and receive plain-English business analytics.
+          </div>
+          <div class="hero-chips">
+            <div class="suggestion-chip" data-prompt="What is the total loan outstanding amount grouped by bucket in the SOA report?">
+              <span class="chip-icon">📊</span>
+              <span>Dues by Delinquency Bucket</span>
+            </div>
+            <div class="suggestion-chip" data-prompt="Show the top 5 loans with the highest total dues.">
+              <span class="chip-icon">🚨</span>
+              <span>Top 5 Highest Dues Loans</span>
+            </div>
+            <div class="suggestion-chip" data-prompt="How many total loans are there per product name?">
+              <span class="chip-icon">🏦</span>
+              <span>Product Type Breakdown</span>
+            </div>
+            <div class="suggestion-chip" data-prompt="Show the top 5 branch IDs with the largest total dues.">
+              <span class="chip-icon">🏢</span>
+              <span>Top Branches by Dues</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Input Controls -->
+      <footer class="chat-input-bar">
+        <div class="input-container">
+          <textarea
+            class="chat-input"
+            id="questionInput"
+            placeholder="Ask a question about your SOA report data (e.g. 'Show total dues by bucket')..."
+            rows="1"
+          ></textarea>
+          <button class="btn-send" id="btnSend" title="Send Question">
+            <span id="sendIcon">➔</span>
+          </button>
+        </div>
+      </footer>
+    </main>
+
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
